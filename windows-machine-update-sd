@@ -1,0 +1,3 @@
+#! /bin/sh
+swaymsg output HDMI-A-2 enable
+ssh hyrican -l vitezfh "sudo virsh shutdown windows10-uefi; xi -yuv && sudo poweroff"

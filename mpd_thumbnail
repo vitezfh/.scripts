@@ -1,0 +1,34 @@
+#!/bin/sh
+
+musicdir=~/Music
+
+extract(){
+	rm /tmp/albumart.png
+	rm /tmp/albumart
+	song_initial=$(mpc -f %file% | head -1)
+	ffmpeg -i "$musicdir/$song_initial" /tmp/albumart.png
+	mv /tmp/albumart.png /tmp/albumart
+}
+
+extract
+#kitty --name "lyrics" --title "lyrics" --class "lyrics" sh -c "clyrics $song_initial | less" & disown
+
+display(){
+	pkill imv
+	#pkill "*lyrics*"
+	[ -f /tmp/albumart ] && imv /tmp/albumart & disown
+	#if ![ $song = "" ]; then kitty --class "lyrics" sh -c "clyrics $song | less" & disown; fi
+}
+
+display
+
+while true 
+do
+	song=$(mpc -f %file% | head -1)
+	if [ "$song" = "$song_initial" ];
+	then sleep 2
+	else
+		extract
+		display
+	fi
+done

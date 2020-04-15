@@ -1,0 +1,4 @@
+#! /bin/sh
+# Alternative to youtube-viewer
+str="$*"
+youtube-dl -i "ytsearch:$str" -o - | mpv -
