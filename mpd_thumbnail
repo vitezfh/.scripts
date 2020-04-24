@@ -1,34 +1,31 @@
-#!/bin/sh
+#!/bin/bash
+# Must have script for anyone using MPD
+# shows local albumart for currently playing
+# Uses basically no CPU
+music_dir=~/Music
 
-musicdir=~/Music
+[ -f /tmp/albumart ] && rm /tmp/albumart
+
+## sleep necessary for imv to init
+imv -b "#222222" -s shrink & sleep "1.5"
+pid=$!
 
 extract(){
-	rm /tmp/albumart.png
-	rm /tmp/albumart
-	song_initial=$(mpc -f %file% | head -1)
-	ffmpeg -i "$musicdir/$song_initial" /tmp/albumart.png
-	mv /tmp/albumart.png /tmp/albumart
-}
-
-extract
-#kitty --name "lyrics" --title "lyrics" --class "lyrics" sh -c "clyrics $song_initial | less" & disown
-
-display(){
-	pkill imv
-	#pkill "*lyrics*"
-	[ -f /tmp/albumart ] && imv /tmp/albumart & disown
-	#if ![ $song = "" ]; then kitty --class "lyrics" sh -c "clyrics $song | less" & disown; fi
-}
-
-display
-
-while true 
-do
-	song=$(mpc -f %file% | head -1)
-	if [ "$song" = "$song_initial" ];
-	then sleep 2
-	else
-		extract
-		display
+	[ -f /tmp/albumart ] && rm /tmp/albumart
+	song_path=$(mpc -f %file% | head -1)
+	song_name=$(cut -f 1 -d '.' <(echo "$song_path"))
+	[ "$old_song" = "$song_name" ] && return
+	if $(ffmpeg -loglevel 8 -i "$music_dir/$song_path" -f image2 "/tmp/albumart"); then true
+	elif [ -f "$music_dir/$song_name.jpg" ]; then
+		cp "$music_dir/$song_name.jpg" "/tmp/albumart"
+	elif [ -f "$music_dir/$song_name.png" ]; then
+		cp "$music_dir/$song_name.jpg" "/tmp/albumart"
 	fi
-done
+	old_song=$song_name
+}
+display(){
+	if [ -f /tmp/albumart ]; then
+		imv-msg $pid "open /tmp/albumart" || exit
+	fi
+}
+while true; do extract; display; mpc idle; done
