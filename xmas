@@ -1,7 +1,0 @@
-#!/bin/bash
-# Xmas fun
-while :
-do
-xmas-tree --color --size $1
-sleep 1 
-done

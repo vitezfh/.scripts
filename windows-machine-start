@@ -1,3 +1,0 @@
-#! /bin/sh
-swaymsg output HDMI-A-2 disable
-ssh hyrican -l vitezfh "sudo virsh start windows10-uefi"
