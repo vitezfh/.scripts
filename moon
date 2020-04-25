@@ -1,4 +1,5 @@
 #!/bin/bash
+# Some special FX for all you leet hackers, just call it from you shell's rc file. Same as you would neofetch, if you use that
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
