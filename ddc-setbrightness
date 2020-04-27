@@ -7,10 +7,10 @@ ddc_displays=$(sudo ddcutil detect | grep Display -A 1 | awk '{print $3}')
 ddc_buses=${ddc_displays: -1}
 for bus in $ddc_buses
 do
+	[ -z "$bus" ] && continue
 	if [ $1 -lt 0 -a $1 -ge -100 ]; then
 		sudo ddcutil --bus=$bus setvcp 12 $(expr 100 + $1) & exit
 	elif [ $1 -gt -100 ]; then
 		sudo ddcutil --bus=$bus setvcp 10 $1
 	fi
 done
-wait

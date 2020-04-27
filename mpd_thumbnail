@@ -1,13 +1,13 @@
 #!/bin/bash
-# Must have script for anyone using MPD
-# shows local albumart for currently playing
+# Must have script for anyone using MPD; needs imv since it supports socket ctl
+# shows local albumart for currently playing song
 # Uses basically no CPU
 music_dir=~/Music
 
 [ -f /tmp/albumart ] && rm /tmp/albumart
 
-## sleep necessary for imv to init
-imv -b "#222222" -s shrink & sleep "1.5"
+
+imv -b "#222222" -s shrink & sleep "1.5" # Sleep necessary for imv to init
 pid=$!
 
 extract(){
