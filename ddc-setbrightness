@@ -2,8 +2,12 @@
 # Usage: ddc-setbrightness 50
 # Requires ddcutil and i2c-tools package (i2c-dev kernel module loaded)
 # Detects ddc displays and adjusts brightness and contrast on all of them
-# It's painfully slow (3secs~); ought to look into it
-ddc_displays=$(sudo ddcutil detect | grep Display -A 1 | awk '{print $3}')
+#
+# Auto: painfully slow (2secs~); ought to look into it:
+#ddc_displays=$(sudo ddcutil detect | grep Display -A 1 | awk '{print $3}')
+
+# Manual definitions:
+ddc_displays=("/dev/i2c-0")
 ddc_buses=${ddc_displays: -1}
 for bus in $ddc_buses
 do
