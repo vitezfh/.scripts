@@ -1,10 +1,10 @@
 #!/bin/bash
 # This passes keyboard and mouse to other pc by using usbip
 # also checks for a VM on other pc and passes these devices to it
-sudo modprobe usbip_host || exit 1
+sudo modprobe usbip_host usbip_core || exit 1
 
 export MACHINE="laptop"
-export CLIENT="tower"
+export CLIENT="hyrican"
 export VM="windows10-uefi"
 usb_1="1-2"
 usb_2="1-6"
@@ -26,8 +26,6 @@ attach_usb() {
 	ssh $CLIENT "sudo usbip attach -r $MACHINE -b $usb_2"
 }
 
-###########
-#### moved logic to client host as udev-run script... 
 check_vm() {
 	if ssh $CLIENT "sudo virsh list" | grep "$VM"; then
 		return 0
@@ -50,16 +48,18 @@ check_status() {
 }
 
 if check_status; then
-	if check_vm; then
-		vm_do detach
-	fi
+	#if check_vm; then
+	#	vm_do detach
+	#fi
+	echo "Releasing devices..."
 	release_usb
 	echo $MACHINE > /tmp/switch
 else
+	echo "Attaching devices..."
 	bind_usb
 	attach_usb
-	if check_vm; then
-		vm_do attach
-	fi
+	#if check_vm; then
+	#	vm_do attach
+	#fi
 	echo $CLIENT > /tmp/switch
 fi
