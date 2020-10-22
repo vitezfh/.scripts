@@ -23,11 +23,17 @@ release_usb() {
 	ssh $SERVER "sudo usbip unbind -b $usb_2"
 }
 
+check_client() {
+	ssh -q -o "ConnectTimeout=1" $USER@$CLIENT exit
+	return $?
+}
+
 if [ "$HOSTNAME" == "$CLIENT" ]; then
 	echo "Releasing devices..."
 	release_usb
-else
-	echo "Attaching devices..."
-	bind_usb
-	attach_usb
+
+elif check_client; then
+	if bind_usb; then
+		attach_usb
+	fi
 fi
