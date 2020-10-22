@@ -1,65 +1,33 @@
 #!/bin/bash
-# This passes keyboard and mouse to other pc by using usbip
-# also checks for a VM on other pc and passes these devices to it
+set -x
 sudo modprobe usbip_host usbip_core || exit 1
 
-export MACHINE="laptop"
+export SERVER="x2sixty"
 export CLIENT="hyrican"
 export VM="windows10-uefi"
 usb_1="1-2"
 usb_2="1-6"
-
-# TODO: unify connectivity check and vm check into one, to more comfortably switch and avoid complications
 
 bind_usb() {
 	sudo usbip bind -b $usb_1
 	sudo usbip bind -b $usb_2
 }
 
-release_usb() {
-	sudo usbip unbind -b $usb_1
-	sudo usbip unbind -b $usb_2
-}
-
 attach_usb() {
-	ssh $CLIENT "sudo usbip attach -r $MACHINE -b $usb_1"
-	ssh $CLIENT "sudo usbip attach -r $MACHINE -b $usb_2"
+	ssh $CLIENT "sudo usbip attach -r $SERVER -b $usb_1"
+	ssh $CLIENT "sudo usbip attach -r $SERVER -b $usb_2"
 }
 
-check_vm() {
-	if ssh $CLIENT "sudo virsh list" | grep "$VM"; then
-		return 0
-	else
-		return 1
-	fi
-}
-vm_do() {
-	action="$1"
-	ssh $USER@$CLIENT "sudo ./.VFIOinput/$action.sh" &
-}
-##########
-
-check_status() {
-	if [ "$(cat /tmp/switch)" == "$CLIENT" ]; then
-		return 0
-	else
-		return 1
-	fi
+release_usb() {
+	ssh $SERVER "sudo usbip unbind -b $usb_1"
+	ssh $SERVER "sudo usbip unbind -b $usb_2"
 }
 
-if check_status; then
-	#if check_vm; then
-	#	vm_do detach
-	#fi
+if [ "$HOSTNAME" == "$CLIENT" ]; then
 	echo "Releasing devices..."
 	release_usb
-	echo $MACHINE > /tmp/switch
 else
 	echo "Attaching devices..."
 	bind_usb
 	attach_usb
-	#if check_vm; then
-	#	vm_do attach
-	#fi
-	echo $CLIENT > /tmp/switch
 fi
