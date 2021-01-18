@@ -1,18 +1,25 @@
 #!/bin/bash
+<<<<<<< Updated upstream
 set -x
 sudo modprobe usbip_host usbip_core || exit 1
 
-export SERVER="x2sixty"
-export CLIENT="hyrican"
-export VM="windows10-uefi"
-usb_1="1-2"
+export MACHINE="svwork"
+export CLIENT="x2sixty"
+
+usb_1="1-1"
+
+# TODO: unify connectivity check and vm check into one, to more comfortably switch and avoid complications
 
 bind_usb() {
 	sudo usbip bind -b $usb_1
 }
 
+release_usb() {
+	sudo usbip unbind -b $usb_1
+}
+
 attach_usb() {
-	ssh $CLIENT "sudo usbip attach -r $SERVER -b $usb_1"
+	ssh $CLIENT "sudo usbip attach -r $MACHINE -b $usb_1"
 }
 
 release_usb() {
