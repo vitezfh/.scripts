@@ -6,21 +6,21 @@ export SERVER="x2sixty"
 export CLIENT="hyrican"
 export VM="windows10-uefi"
 usb_1="1-2"
-usb_2="1-6"
 
 bind_usb() {
 	sudo usbip bind -b $usb_1
-	sudo usbip bind -b $usb_2
 }
 
 attach_usb() {
 	ssh $CLIENT "sudo usbip attach -r $SERVER -b $usb_1"
-	ssh $CLIENT "sudo usbip attach -r $SERVER -b $usb_2"
 }
 
 release_usb() {
 	ssh $SERVER "sudo usbip unbind -b $usb_1"
-	ssh $SERVER "sudo usbip unbind -b $usb_2"
+}
+
+release_usb_locally() {
+	sudo usbip unbind -b $usb_1
 }
 
 check_client() {
@@ -35,5 +35,8 @@ if [ "$HOSTNAME" == "$CLIENT" ]; then
 elif check_client; then
 	if bind_usb; then
 		attach_usb
+	else
+		release_usb_locally
+
 	fi
 fi
