@@ -1,2 +1,0 @@
-#!/bin/sh
-mpv --no-osc --no-input-default-bindings --input-conf=/dev/null --title='mpvfloat' --no-cache --profile=low-latency --untimed /dev/video0 --vf='hflip'

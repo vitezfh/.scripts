@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Description: 
+#		sets the brightess (or contrast) on all monitors defined in $ddc_displays
+# Note:
+# 		Requires ddcutil i2c-tools packages
+
+sudo modprobe i2c-dev
+
+ddc_displays=${ddc_displays-dev/i2c-4 /dev/i2c-8}
+
+# To get your ddc_displays string, do: sudo ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo ''
+
+for display in $ddc_displays
+do
+	bus=${display: -1}
+	[ -z "$bus" ] && continue
+	sudo ddcutil --bus=$bus setvcp 10 $1
+done

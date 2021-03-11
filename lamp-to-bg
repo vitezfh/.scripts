@@ -32,10 +32,11 @@ lamp brightness $brightness
 #average_color=$(convert $wallpaper -resize 1x1 txt:- | tail -1 | awk '{print $3}')
 
 average_colors=$(\
-convert $wallpaper -scale 50x50! -depth 8 +dither -colors 8 -format "%c" histogram:info: |\
-sed -n 's/^[ ]*\(.*\):.*[#]\([0-9a-fA-F]*\) .*$/\1,#\2/p' |\
-sort -r -n -k 1 -t "," |\
-awk -F "#" '{print $2}')
+	convert $wallpaper -scale 50x50! -depth 8 +dither -colors 8 -format "%c" histogram:info: |\
+	sed -n 's/^[ ]*\(.*\):.*[#]\([0-9a-fA-F]*\) .*$/\1,#\2/p' |\
+	sort -r -n -k 1 -t "," |\
+	awk -F "#" '{print $2}'\
+)
 
 while true; do
 	for color in $average_colors; do
