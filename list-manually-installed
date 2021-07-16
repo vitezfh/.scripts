@@ -1,3 +1,4 @@
-#! /bin/sh
-
-xbps-query -lm | awk -F "-" '{$(NF--)=""; OFS = "-"; print $0"\b \b"}'
+#! /bin/bash
+while read -r package ; do
+	echo "${package%-*}"
+done < <(xbps-query -lm)
