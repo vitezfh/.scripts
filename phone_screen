@@ -3,12 +3,13 @@
 # Look into adb tcpip
 if [ "$1" = "" ]
 then
-	adb connect "glxy-8:5555"
-	scrcpy -b2M -m1000 -t --max-fps 15 -S --window-borderless --window-width 488 --window-height 1000 --window-height 1000
+	adb connect "s20fe5g:5555"
+	scrcpy -b2M -m1000 -t --max-fps 30 -S --window-borderless 
+	#--window-width 732 --window-height 2000
 	adb disconnect
 	#scrcpy -S
 else
 	adb connect "$1:5555"
-	scrcpy -b2M -m1000 -t --max-fps 15 -S --window-borderless
+	scrcpy -b6M -m2000 -t --max-fps 30 -S --window-borderless
 	adb disconnect
 fi
