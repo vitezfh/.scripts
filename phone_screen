@@ -9,7 +9,7 @@ then
 	adb disconnect
 	#scrcpy -S
 else
-	adb connect "$1:5555"
+	adb connect "$1"
 	scrcpy -b6M -m2000 -t --max-fps 30 -S --window-borderless
 	adb disconnect
 fi
