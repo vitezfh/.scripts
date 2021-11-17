@@ -6,7 +6,7 @@
 output=$(swaymsg -p -t get_outputs | grep focused | awk '{print $2}')
 
 # fuzzy find a pape from folder
-chosen=$(find ~/Pictures/Wallpapers -type f | shuf | imv -f)
+chosen=$(find ~/wallpapers -type f | shuf | imv -f -s crop)
 
 mkdir -p .cache/wallpapers
 # Copy to persistent file
