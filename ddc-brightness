@@ -16,5 +16,5 @@ for display in $ddc_displays
 do
 	bus=${display: -1}
 	[ -z "$bus" ] && continue
-	sudo ddcutil --bus=$bus setvcp 10 $1
+	sudo ddcutil --bus=$bus setvcp 10 $1 &
 done

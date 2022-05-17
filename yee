@@ -1,13 +1,13 @@
 #!/bin/bash
 
-if [ $(source /etc/os-release ; echo $NAME) = void ] ; then 
+if [ $(source /etc/os-release ; echo $NAME) = Void ] ; then 
   nc() {
     openbsd-nc $@
   }
 fi 
 
 fn_send() {
-	ip=192.168.178.57
+	ip=192.168.178.31
 	ping -c1 -W1 $ip > /dev/null && \
 		printf "{\"id\":1,$1}\r\n" | nc -q 1 $ip 55443 && return
 	echo "$ip not available"

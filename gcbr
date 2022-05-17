@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -x
+w=$1 ; h=$2
+
+display_w=$(bspc query --monitor \^1 --tree | jq .rectangle.width)
+display_h=$(bspc query --monitor \^1 --tree | jq .rectangle.height)
+
+middle_w=$(($display_w/2-$w/2))
+middle_h=$(($display_h/2-$h/2))
+
+echo "$w"x"$h"+"$middle_w"+"$middle_h"
+
+
