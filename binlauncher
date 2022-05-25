@@ -1,2 +1,3 @@
 #!/bin/zsh
-simplemenu -e zsh -c $'for str in $(whence -pm \'*\'); do echo ${str##*/}; done | fzf'
+set -x
+simplemenu -e zsh -c _launch

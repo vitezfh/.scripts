@@ -1,2 +1,2 @@
-#!/bin/zsh
-kitty -c $XDG_CONFIG_HOME/kitty/theme.link -c $XDG_CONFIG_HOME/kitty/kitty.conf --class simplemenu "$@"
+#!/bin/sh
+mykitty --class simplemenu "$@"
