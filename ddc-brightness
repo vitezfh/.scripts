@@ -7,12 +7,13 @@
 sudo modprobe i2c-dev
 
 if [ "$1" = "detect" ] ; then
-  ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo '' ; fi
+  ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo ''
+fi
 
 ddc_displays=$(for display in $(cat $XDG_CONFIG_HOME/ddc_displays); do echo $display ; done)
 
 # To get your config do:
-# sudo ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo '' > $XDG_CONFIG_HOME/ddc_displays
+# echo $(sudo ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo '') > $XDG_CONFIG_HOME/ddc_displays
 
 for display in $ddc_displays
 do

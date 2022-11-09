@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # scdl runner that builds a whole container first
 
 echo Running docker build first...
