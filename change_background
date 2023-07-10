@@ -6,7 +6,7 @@ set -x
 output=$(swaymsg -p -t get_outputs | grep focused | awk '{print $2}')
 
 # fuzzy find a pape from folder
-chosen=$(find ~/wallpapers -type f | shuf | fzf)
+chosen=$(find ~/mnt/media/pictures/Wallpapers -type f | shuf | fzf)
 mkdir -p .cache/wallpapers
 # Copy to persistent file
 cp "$chosen" .cache/wallpapers/$output
@@ -15,9 +15,11 @@ cp "$chosen" .cache/wallpapers/$output
 if swaymsg output $output bg .cache/wallpapers/$output fill; then
 	# Peculiarity of notification (... & sleep 0.2 && ...) is due to it hanging sometimes
 	notify-send -t 4500 "Changed background to:
-$chosen" & sleep 0.2
+$chosen" &
+	sleep 0.2
 else
 	notify-send -t 4500 "Failed to change to:
-	$chosen" & sleep 0.2
+	$chosen" &
+	sleep 0.2
 fi
 rm "$HOME/.cache/wallpapers/$output-backup" && exit
