@@ -1,7 +1,8 @@
 #!/bin/bash
-PPID=$$
+our_PPID=$$
 set -ex
 
+#sunshine_cmd="sudo -i PULSE_SERVER=unix:/run/user/1000/pulse/native flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
 sunshine_cmd="flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
 old_outputs=$(swaymsg -r -t get_outputs | jq -r '.[].name')
 
@@ -16,7 +17,7 @@ clean_exit() {
 	for output in $(get_headless); do
 		swaymsg output $output unplug
 	done
-	pkill -TERM -P $PPID
+	pkill -TERM -P $our_PPID
 }
 trap clean_exit SIGINT
 
@@ -28,14 +29,17 @@ done
 
 for output in $(get_headless); do
 	swaymsg output $output \
-		mode 2412x1080@60Hz
+		mode 1920x1080@60Hz \
+		position 0 0
+	#mode 2412x1080@60Hz
+	xrandr --verbose --output "$output" --primary
 done
 
 sleep 2
 
 while true; do
 	$sunshine_cmd >$HOME/.config/sunshine/sunshine_flatpak.log 2>&1
-	sleep 1
+	sleep 3
 done
 
 clean_exit

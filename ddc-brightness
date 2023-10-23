@@ -1,26 +1,37 @@
 #!/bin/bash
+set -xe
 
-# Description: 
+# Description:
 #		sets the brightess (or contrast) on all monitors defined in $ddc_displays
 # Note:
 # 		Requires ddcutil i2c-tools packages
-sudo modprobe i2c-dev
+#sudo modprobe i2c-dev
 
-if [ "$1" = "detect" ] ; then
-  ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo ''
+if [ "$1" = "detect" ]; then
+	ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' '
+	echo ''
 fi
 
-ddc_displays=$(for display in $(cat $XDG_CONFIG_HOME/ddc_displays); do echo $display ; done)
-
+#ddc_displays=$(for display in $(cat $XDG_CONFIG_HOME/ddc_displays); do echo $display; done)
+#ddc_displays="/dev/i2c-7 /dev/i2c-8 /dev/i2c-4"
 # To get your config do:
 # echo $(sudo ddcutil detect | grep Display -A 1 | awk '{print $3}' | tr '\n' ' ' ; echo '') > $XDG_CONFIG_HOME/ddc_displays
 
-for display in $ddc_displays
-do
-	bus=${display: -1}
-	[ -z "$bus" ] && continue
-	sudo ddcutil --bus=$bus setvcp 10 $1 &
-        
+#for display in $ddc_displays; do
+#	bus=${display: -1}
+#	[ -z "$bus" ] && continue
+#	sudo ddcutil --bus=$bus setvcp 10 $1 &
+
+#	[ -z "$2" ] && continue
+#	sleep 0.5 && sudo ddcutil --bus=$bus setvcp 12 $2 &
+#done
+
+displays="1"
+
+for display in $displays; do
+	sudo ddcutil --display=$display setvcp 10 $1 &
+
 	[ -z "$2" ] && continue
-	sleep 0.5 && sudo ddcutil --bus=$bus setvcp 12 $2 &
+	sleep 1.5 && sudo ddcutil --display=$display setvcp 12 $2 &
 done
+printf "\n"
