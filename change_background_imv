@@ -1,24 +1,23 @@
 #!/bin/sh
 # Change the pape of active output by fuzzyfinding in a pape folder
-# and also notify about the change
-#set -x
+# also notify about the change
+set -xe
 # Determine active output display
-output=$(swaymsg -p -t get_outputs | grep focused | awk '{print $2}')
+[ "$XDG_CURRENT_DESKTOP" = "sway" ] &&
+	output=$(swaymsg -p -t get_outputs | grep focused | awk '{print $2}')
 
 # fuzzy find a pape from folder
 chosen=$(find ~/media/pictures/Wallpapers -type f | shuf | imv -f -s crop)
+[ "$XDG_CURRENT_DESKTOP" = "Hyprland" ] &&
+	output=$(hyprctl monitors -j | jq 'select(.[].focused == true)' | jq '.[].name' -r)
 
-mkdir -p .cache/wallpapers
+# shuffle wallpapers from folder and pipe to imv
+
 # Copy to persistent file
-cp "$chosen" .cache/wallpapers/$output
+mkdir -p .cache/wallpapers
+cp "$chosen" ".cache/wallpapers/$output"
 
 # Set pape to that file
-if swaymsg output $output bg .cache/wallpapers/$output fill; then
-	# Peculiarity of notification (... & sleep 0.2 && ...) is due to it hanging sometimes
-	notify-send -t 4500 "Changed background to:
-$chosen" & sleep 0.2
-else
-	notify-send -t 4500 "Failed to change to:
-	$chosen" & sleep 0.2
-fi
-rm "$HOME/.cache/wallpapers/$output-backup" && exit
+swww img --transition-type random --resize crop .cache/wallpapers/"$output"
+
+rm "$HOME/.cache/wallpapers/$output-backup"
