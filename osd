@@ -1,2 +1,5 @@
-#!/bin/sh
-OpenSubtitlesDownload.py --select manual -g cli -u $OPEN_SUBTITLES_U -p $OPEN_SUBTITLES_P $@
+#!/bin/bash
+#osd_script="https://raw.githubusercontent.com/emericg/OpenSubtitlesDownload/master/OpenSubtitlesDownload.py"
+#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+#wget "$osd_scripts" -O $SCRIPT_DIR/OpenSubtitlesDownload.py
+OpenSubtitlesDownload.py --select manual -g cli -u bloatmaxxx -p PoopGeezer1000! "$@"

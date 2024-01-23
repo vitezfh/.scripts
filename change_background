@@ -1,4 +1,5 @@
 #!/bin/sh
+# NOTE: for sway window manager!
 # Change the pape of active output by fuzzyfinding in a pape folder
 # and also notify about the change
 set -x
@@ -6,7 +7,7 @@ set -x
 output=$(swaymsg -p -t get_outputs | grep focused | awk '{print $2}')
 
 # fuzzy find a pape from folder
-chosen=$(find ~/wallpapers -type f | shuf | fzf)
+chosen=$(find ~/media/pictures/Wallpapers -type f | shuf | fzf)
 mkdir -p .cache/wallpapers
 # Copy to persistent file
 cp "$chosen" .cache/wallpapers/$output
