@@ -1,6 +1,6 @@
 #!/bin/sh
 # scdl runner that builds a whole container first
-
+# NOTE: TODO: maybe add env var LC_ALL=en_US.UTF-8 for filenames to work
 echo Running docker build first...
 docker build --tag scdl - <<EOF
 FROM alpine AS unzipper

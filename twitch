@@ -1,0 +1,3 @@
+#!/bin/bash
+
+streamlink --player mpv "$@" source

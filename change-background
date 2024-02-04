@@ -1,4 +1,5 @@
 #!/bin/sh
+# NOTE: for sway window manager!
 # Change the pape of active output by fuzzyfinding in a pape folder
 # and also notify about the change
 set -x

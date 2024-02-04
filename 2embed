@@ -1,0 +1,40 @@
+#!/bin/bash
+
+help_msg() {
+  printf '2embed [ -h, --help ]
+       title-year "title" year
+       imdb-id <id>
+       tmdb-id <id>
+       library ((opens webpage))'
+  echo
+}
+
+open_func() {
+  xdg-open "$@"
+}
+
+if [[ $# -eq 0 ]] ; then
+    help_msg
+    exit 0
+fi
+
+for arg in "$@" ; do
+  case "$arg" in
+    -h | --help )
+    help_msg
+    ;;
+    title-year )
+    open_func "https://2embed.org/embed/movie?title=$2&year=$3"
+    ;;
+    imdb-id )
+    open_func "https://2embed.org/embed/movie?imdb=$2"
+    ;;
+    tmdb-id )
+    open_func "https://2embed.org/embed/movie?tmdb=$2"
+    ;;
+    library )
+    open_func "https://2embed.org/library"
+    ;;
+  esac
+done
+                
