@@ -1,10 +1,9 @@
 #!/bin/sh
 # Streams phone screen
 # Look into adb tcpip
-if [ "$1" = "" ]
-then
-	adb connect "s20fe5g:5555"
-	scrcpy -b2M -m1000 -t --max-fps 30 -S --window-borderless 
+if [ "$1" = "" ]; then
+	adb connect "1p9pro:5555"
+	scrcpy -b2M -m1000 -t --max-fps 30 -S --window-borderless
 	#--window-width 732 --window-height 2000
 	adb disconnect
 	#scrcpy -S

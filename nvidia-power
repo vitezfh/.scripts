@@ -1,0 +1,29 @@
+#!/bin/bash
+
+_pci="0000:10:00.0"
+
+if 
+
+check_if_powered() {
+	if nvidia-smi drain -p $_pci -q | grep 'not draining'; then
+		echo Powered on.
+	else
+		echo Powered off.
+	fi
+}
+
+_set_power() {
+	([ "$state" = "on" ] && turn_off=1) || turn_off=0
+	echo "Requesting power $state$([ $UID = 0 ] || printf ' (NOT ROOT!)'):"
+	nvidia-smi drain -p $_pci -m "$turn_off" &&
+		echo Powered "$state".
+}
+
+power_on() {
+	state="on"
+	_set_power
+}
+power_off() {
+	state="off"
+	_set_power
+}

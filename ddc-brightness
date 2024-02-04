@@ -26,12 +26,12 @@ fi
 #	sleep 0.5 && sudo ddcutil --bus=$bus setvcp 12 $2 &
 #done
 
-displays="1"
+displays="1 2"
 
 for display in $displays; do
-	sudo ddcutil --display=$display setvcp 10 $1 &
-
+	sudo ddcutil --display=$display setvcp 10 $1
 	[ -z "$2" ] && continue
-	sleep 1.5 && sudo ddcutil --display=$display setvcp 12 $2 &
+	sleep 1.5
+	sudo ddcutil --display=$display setvcp 12 $2
 done
 printf "\n"

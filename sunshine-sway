@@ -4,6 +4,7 @@ set -ex
 
 #sunshine_cmd="sudo -i PULSE_SERVER=unix:/run/user/1000/pulse/native flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
 sunshine_cmd="flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
+sunshine_cmd="sunshine"
 old_outputs=$(swaymsg -r -t get_outputs | jq -r '.[].name')
 
 get_headless() {
