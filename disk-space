@@ -1,0 +1,11 @@
+#!/bin/bash
+THRESHOLD=${THRESHOLD-85} # In percent, change if needed
+
+df -H -T -x devtmpfs -x tmpfs -x efivarfs -x tmpfs | awk 'NR > 1' |
+	awk '$6 > "'$THRESHOLD'" {print}' |
+	while read -r output; do
+		echo $output | awk '{ print "💾: " $6 ", 💿: " $1}'
+	done
+#Filesystem                          Size  Used Avail Use%  Mounted on
+#/dev/nvme0n1p3                      859G  733G 101G  88%   /
+#//XXXXXXX.your-storagebox.de/backup 1.1T  960G 116G  90%   /media/hetzroot
