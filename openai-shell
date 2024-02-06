@@ -2,7 +2,7 @@
 ###
 engine=${engine-curie}
 ## Can be any of the following:
-###    (ascending in complexity/cost/speed/specialization): 
+###    (ascending in complexity/cost/speed/specialization):
 ####    ada, babbage, curie, davinci
 
 SK=$(cat $HOME/.oaisk)
@@ -17,11 +17,11 @@ ai_request() {
 completion_tool() {
 	prompt="$1"
 	# Our desired added token count + our initial prompt token count
-	max_tokens=$(expr $2 + $(wc -w <<< "$prompt") )
+	max_tokens=$(expr $2 + $(wc -w <<<"$prompt"))
 	echo $max_tokens
 	json='{"prompt": "'$prompt'", "max_tokens": '$max_tokens'}'
 	response=$(ai_request "$engine/completions" "$json")
-	text=$( jq -r '.choices[] | .text' <<< $response )
+	text=$(jq -r '.choices[] | .text' <<<$response)
 	echo $prompt$text
 }
 
@@ -29,11 +29,11 @@ answer_tool() {
 	#TODO
 	prompt="$1"
 	# Our desired added token count + our initial prompt token count
-	max_tokens=$(expr $2 + $(wc -w <<< "$prompt") )
+	max_tokens=$(expr $2 + $(wc -w <<<"$prompt"))
 	echo $max_tokens
 	json='{"prompt": "'$prompt'", "max_tokens": '$max_tokens'}'
 	response=$(ai_request "$engine/completions" "$json")
-	text=$( jq -r '.choices[] | .text' <<< $response )
+	text=$(jq -r '.choices[] | .text' <<<$response)
 	echo $prompt$text
 }
 

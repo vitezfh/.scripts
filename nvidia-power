@@ -2,28 +2,37 @@
 
 _pci="0000:10:00.0"
 
-if 
-
 check_if_powered() {
 	if nvidia-smi drain -p $_pci -q | grep 'not draining'; then
 		echo Powered on.
+		exit 0
 	else
-		echo Powered off.
+		echo Powered off or not found.
+		exit 1
 	fi
 }
 
 _set_power() {
-	([ "$state" = "on" ] && turn_off=1) || turn_off=0
-	echo "Requesting power $state$([ $UID = 0 ] || printf ' (NOT ROOT!)'):"
-	nvidia-smi drain -p $_pci -m "$turn_off" &&
-		echo Powered "$state".
+	echo "Turning GPU ($_pci) power $cmd$([ $UID = 0 ] || printf ' (NOT ROOT!)'):"
+	nvidia-smi drain -p $_pci -m "$power" >/dev/null && echo Success. || echo Failed.
 }
 
-power_on() {
-	state="on"
+cmd="$@"
+case "$@" in
+status | state | check)
+	printf "DISCLAIMER: GPUs can't be detected until you turn them back on\n...\n"
+	check_if_powered
+	;;
+on | poweron | power_on)
+	power=0
 	_set_power
-}
-power_off() {
-	state="off"
+	;;
+off | poweroff | power_off)
+	printf "DISCLAIMER: GPUs can't be detected until you turn them back on\n...\n"
+	power=1
 	_set_power
-}
+	;;
+*)
+	echo Usage: nvidia-power [ status / on / off ]
+	;;
+esac
