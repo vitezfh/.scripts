@@ -1,0 +1,8 @@
+#!/bin/bash
+set -xe
+
+GBE_FORK_DIR=~/.local/share/gbe_fork
+
+wine64 $GBE_FORK_DIR/win-release/tools/find_interfaces/generate_interfaces_file.exe steam_api64.dll
+mv steam_api64.dll steam_api64.dll.ORIGINAL
+cp $GBE_FORK_DIR/win-release/x64/steam_api64.dll .

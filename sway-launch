@@ -13,7 +13,8 @@ export ELM_ENGINE=wayland_egl
 export SDL_VIDEODRIVER=wayland
 export MOZ_ENABLE_WAYLAND=1
 #nvidia
-export NVD_BACKEND=direct
+#export NVD_BACKEND=direct
 #export WLR_NO_HARDWARE_CURSORS=1
 
-dbus-run-session sway --unsupported-gpu $@ 2>&1 | systemd-cat -t sway
+#dbus-run-session sway --unsupported-gpu $@ 2>&1 | systemd-cat -t sway
+sway --unsupported-gpu $@
