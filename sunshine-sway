@@ -1,46 +1,44 @@
 #!/bin/bash
 our_PPID=$$
 set -x
-
-#sunshine_cmd="sudo -i PULSE_SERVER=unix:/run/user/1000/pulse/native flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
-sunshine_cmd="flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
+#sunshine_cmd="flatpak run --filesystem=home --socket=wayland dev.lizardbyte.sunshine"
 sunshine_cmd="sunshine"
 old_outputs=$(swaymsg -r -t get_outputs | jq -r '.[].name')
 
 get_headless() {
-	swaymsg -t get_outputs | jq -r '.[].name' | grep HEADLESS | tr -d '"'
+  swaymsg -t get_outputs | jq -r '.[].name' | grep HEADLESS | tr -d '"'
 }
 
 clean_exit() {
-	for output in $old_outputs; do
-		swaymsg output $output enable
-	done
-	for output in $(get_headless); do
-		swaymsg output $output unplug
-	done
-	pkill -TERM -P $our_PPID
+  for output in $old_outputs; do
+    swaymsg output $output enable
+  done
+  for output in $(get_headless); do
+    swaymsg output $output unplug
+  done
+  pkill -TERM -P $our_PPID
 }
 trap clean_exit SIGINT
 
 for output in $old_outputs; do
-	swaymsg output $output disable
+  swaymsg output $output disable
 done
 
 (get_headless | grep HEADLESS) || swaymsg create_output HEADLESS-1
 
 for output in $(get_headless); do
-	swaymsg output $output \
-		mode 1920x1080@60Hz \
-		position 0 0
-	#mode 2412x1080@60Hz
-	xrandr --verbose --output "$output" --primary
+  swaymsg output $output \
+    mode 1920x1200@59.950Hz \
+    position 0 0
+  #mode 2412x1080@60Hz # Phone
+  xrandr --verbose --output "$output" --primary
 done
 
 sleep 2
 
 while true; do
-	$sunshine_cmd >$HOME/.config/sunshine/sunshine_flatpak.log 2>&1
-	sleep 3
+  $sunshine_cmd >$HOME/.config/sunshine/sunshine_sway.log 2>&1 || break
+  sleep 3
 done
 
 clean_exit

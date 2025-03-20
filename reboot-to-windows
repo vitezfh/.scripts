@@ -1,0 +1,2 @@
+#!/bin/sh
+sudo grub-reboot "Windows" && qdbus org.kde.LogoutPrompt /LogoutPrompt promptReboot

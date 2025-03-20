@@ -14,13 +14,13 @@ cp "$chosen" .cache/wallpapers/$output
 
 # Set pape to that file
 if swaymsg output $output bg .cache/wallpapers/$output fill; then
-	# Peculiarity of notification (... & sleep 0.2 && ...) is due to it hanging sometimes
-	notify-send -t 4500 "Changed background to:
+  # Peculiarity of notification (... & sleep 0.2 && ...) is due to it hanging sometimes
+  notify-send -t 4500 "Changed background to:
 $chosen" &
-	sleep 0.2
+  sleep 0.2
 else
-	notify-send -t 4500 "Failed to change to:
+  notify-send -t 4500 "Failed to change to:
 	$chosen" &
-	sleep 0.2
+  sleep 0.2
 fi
 rm "$HOME/.cache/wallpapers/$output-backup" && exit

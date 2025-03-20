@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Scanner settings
+SCANNER_DEVICE="airscan:e0:Canon TS7400 series"
+RESOLUTION=300
+MODE="Color"
+
+# Output settings
+OUTPUT_FORMAT="jpeg"
+OUTPUT_PREFIX="out%d.$OUTPUT_FORMAT"
+
+# Batch settings
+BATCH_START=1
+
+scan_single_sided() {
+  scanimage -d "$SCANNER_DEVICE" --source ADF --format $OUTPUT_FORMAT -x 215 -y 297 --resolution $RESOLUTION --mode $MODE --batch=$OUTPUT_PREFIX --batch-start=$BATCH_START
+}
+
+scan_double_sided() {
+  # Parse the output to get the number of pages scanned
+  set -x
+  first_page_output=$(scanimage -d "$SCANNER_DEVICE" --source ADF --format $OUTPUT_FORMAT -x 215 -y 297 --resolution $RESOLUTION --mode $MODE --batch=$OUTPUT_PREFIX --batch-start=$((BATCH_START)) --batch-increment=2 2>&1)
+  num_pages=$(echo "$first_page_output" | grep "Batch terminated" | awk '{print $3}')
+
+  read -p "Flip the stack of documents and press enter to continue..." -n 1
+
+  # Calculate the starting page for the second batch
+  start_page=$((num_pages + BATCH_START))
+
+  scanimage -d "$SCANNER_DEVICE" --source ADF --format $OUTPUT_FORMAT -x 215 -y 297 --resolution $RESOLUTION --mode $MODE --batch=$OUTPUT_PREFIX --batch-start=$((start_page)) --batch-increment=-2
+  set +x
+}
+
+# CLI flags and help message
+while getopts ":hsd" opt; do
+  case $opt in
+  h)
+    echo "Usage: $0 [-h] [-s] [-d]"
+    exit 0
+    ;;
+  s)
+    scan_single_sided
+    exit 0
+    ;;
+  d)
+    scan_double_sided
+    exit 0
+    ;;
+  \\?)
+    echo "Invalid option: -$OPTARG"
+    exit 1
+    ;;
+  esac
+done
+
+# Default to double-sided scanning if no flags are provided
+scan_double_sided
+
+for file in out*.jpeg; do
+  text=$(tesseract "$file" - 2>/dev/null)
+  if [ -z "$text" ]; then
+    echo "Probably a blank page: $file"
+  fi
+done

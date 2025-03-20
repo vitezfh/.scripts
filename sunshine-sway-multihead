@@ -8,17 +8,17 @@ sunshine_cmd="sunshine"
 old_outputs=$(swaymsg -r -t get_outputs | jq -r '.[].name')
 
 get_headless() {
-	swaymsg -t get_outputs | jq -r '.[].name' | grep HEADLESS | tr -d '"'
+  swaymsg -t get_outputs | jq -r '.[].name' | grep HEADLESS | tr -d '"'
 }
 
 clean_exit() {
-	for output in $old_outputs; do
-		swaymsg output $output enable
-	done
-	for output in $(get_headless); do
-		swaymsg output $output unplug
-	done
-	pkill -TERM -P $our_PPID
+  for output in $old_outputs; do
+    swaymsg output $output enable
+  done
+  for output in $(get_headless); do
+    swaymsg output $output unplug
+  done
+  pkill -TERM -P $our_PPID
 }
 trap clean_exit SIGINT
 
@@ -29,17 +29,17 @@ trap clean_exit SIGINT
 (get_headless | grep HEADLESS) || swaymsg create_output HEADLESS-1
 
 for output in $(get_headless); do
-	swaymsg output $output \
-		mode 1280x720@60Hz
-	#mode 2412x1080@60Hz
-	#xrandr --verbose --output "$output" --primary
+  swaymsg output $output \
+    mode 1920x1080@60Hz
+  #mode 2412x1080@60Hz
+  #xrandr --verbose --output "$output" --primary
 done
 
 sleep 2
 
 while true; do
-	$sunshine_cmd
-	sleep 3
+  $sunshine_cmd
+  sleep 3
 done
 
 clean_exit
