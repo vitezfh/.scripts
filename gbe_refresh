@@ -1,0 +1,87 @@
+#!/bin/bash
+set -e
+
+GBE_DIR=~/.local/share/gbe_fork/
+
+# Function to calculate md5 hash (works on both Linux and macOS)
+get_hash() {
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum "$1" | awk '{print $1}'
+  else
+    md5 -q "$1"
+  fi
+}
+
+# File type configuration
+declare -A FILE_TYPES=(
+  ["steam_api64.dll"]="win_release/experimental/x64/steam_api64.dll"
+  ["steam_api.dll"]="win_release/experimental/x32/steam_api.dll"
+  ["steamclient64.dll"]="win_release/experimental/x64/steamclient64.dll"
+  ["steamclient.dll"]="win_release/experimental/x32/steamclient.dll"
+  ["libsteam_api.so"]="linux_release/experimental/x64/libsteam_api.so"
+  ["steamclient.so"]="linux_release/experimental/x64/steamclient.so"
+)
+
+update_dll() {
+  local file=$1
+  local filename=$(basename "$file")
+
+  echo
+  echo "Updated."
+  echo
+  mv -f "$file" "$file.OUTDATED"
+
+  if [[ -v FILE_TYPES[$filename] ]]; then
+    cp "$GBE_DIR/${FILE_TYPES[$filename]}" "$file"
+  else
+    echo "Unknown file type: $file"
+    echo "Skipping..."
+    return 1
+  fi
+}
+
+shopt -s globstar nullglob dotglob
+
+# Find all matching files
+matches=()
+for pattern in "${!FILE_TYPES[@]}"; do
+  matches+=("$(pwd)"/**/"$pattern")
+done
+
+# Process each found file
+for file in "${matches[@]}"; do
+  [ -f "$file" ] || continue # Skip if not a regular file
+  echo "Found: $file"
+
+  filename=$(basename "$file")
+  source_file="$GBE_DIR/${FILE_TYPES[$filename]}"
+
+  # Check if source file exists
+  if [ ! -f "$source_file" ]; then
+    echo "Source file not found: $source_file"
+    echo "Skipping..."
+    continue
+  fi
+
+  # Compare hashes
+  if [ -f "$file" ]; then
+    current_hash=$(get_hash "$file")
+    new_hash=$(get_hash "$source_file")
+
+    if [ "$current_hash" = "$new_hash" ]; then
+      echo "File is already up to date. Skipping..."
+      echo
+      continue
+    fi
+  fi
+
+  # Prompt user if hashes differ or file doesn't exist
+  read -p "Update this file? [y/N] " -n 1 -r
+  echo # move to a new line
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    update_dll "$file"
+  else
+    echo "Skipping..."
+    echo
+  fi
+done
