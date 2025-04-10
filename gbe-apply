@@ -1,0 +1,62 @@
+#!/bin/bash
+set -e
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <platform> <steam_api_file> [gbe_fork_dir]"
+  echo "Platforms: linux, win, win32"
+  exit 1
+fi
+
+PLATFORM=$1
+STEAM_API_FILE=$2
+GBE_FORK_DIR=${3:-~/.local/share/gbe_fork}
+
+# Validate platform
+case "$PLATFORM" in
+linux)
+  FORK_SUBDIR="linux_release"
+  GENERATOR="$GBE_FORK_DIR/tools/generate_interfaces/generate_interfaces_x64"
+  TARGET_FILE="libsteam_api.so"
+  ADDITIONAL_FILE="steamclient.so"
+  ;;
+win)
+  FORK_SUBDIR="win_release"
+  GENERATOR="wine $GBE_FORK_DIR/tools/generate_interfaces/generate_interfaces_x64.exe"
+  TARGET_FILE="steam_api64.dll"
+  ADDITIONAL_FILE="steamclient64.dll"
+  ;;
+win32)
+  FORK_SUBDIR="win_release"
+  GENERATOR="wine $GBE_FORK_DIR/tools/generate_interfaces/generate_interfaces_x32.exe"
+  TARGET_FILE="steam_api.dll"
+  ADDITIONAL_FILE="steamclient.dll"
+  ;;
+*)
+  echo "Invalid platform: $PLATFORM"
+  echo "Valid platforms: linux, win, win32"
+  exit 1
+  ;;
+esac
+
+# Get absolute path to the steam API file
+STEAM_API_FILE=$(realpath "$STEAM_API_FILE")
+DIR=$(dirname "$STEAM_API_FILE")
+FILE=$(basename "$STEAM_API_FILE")
+
+# Verify the file exists
+if [ ! -f "$STEAM_API_FILE" ]; then
+  echo "Error: Steam API file not found: $STEAM_API_FILE"
+  exit 1
+fi
+
+cd "$DIR"
+
+# Run the generator
+$GENERATOR "$FILE"
+
+# Backup and replace the file
+mv "$FILE" "$FILE.ORIGINAL"
+cp "$GBE_FORK_DIR/$FORK_SUBDIR/experimental/x64/$TARGET_FILE" .
+[ -f "$ADDITIONAL_FILE" ] && cp "$GBE_FORK_DIR/$FORK_SUBDIR/experimental/x64/$ADDITIONAL_FILE" .
+
+echo "GBE applied successfully to $STEAM_API_FILE"

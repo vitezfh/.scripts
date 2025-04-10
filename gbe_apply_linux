@@ -1,9 +1,0 @@
-#!/bin/bash
-set -xe
-
-GBE_FORK_DIR=~/.local/share/gbe_fork/linux_release
-
-$GBE_FORK_DIR/tools/generate_interfaces/generate_interfaces_x64 libsteam_api.so
-
-mv libsteam_api.so libsteam_api.so.ORIGINAL
-cp $GBE_FORK_DIR/experimental/x64/libsteam_api.so .
