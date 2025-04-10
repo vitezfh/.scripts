@@ -1,0 +1,192 @@
+#!/bin/bash
+set -e
+
+GBE_DIR=~/.local/share/gbe_fork/
+mkdir -p "$GBE_DIR"
+
+# Function to calculate md5 hash (works on both Linux and macOS)
+get_hash() {
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum "$1" | awk '{print $1}'
+  else
+    md5 -q "$1"
+  fi
+}
+
+# Helper function for file operations
+backup_and_replace() {
+  local src=$1 dest=$2 backup_suffix=${3:-.ORIGINAL}
+  mv "$dest" "$dest$backup_suffix"
+  cp "$src" "$dest"
+}
+
+apply_gbe() {
+  if [ $# -lt 2 ]; then
+    echo "Usage: $0 apply <platform> <steam_api_file> [gbe_fork_dir]"
+    echo "Platforms: linux, win, win32"
+    exit 1
+  fi
+
+  declare -A PLATFORM_CONFIG=(
+    [linux]="linux_release libsteam_api.so steamclient.so generate_interfaces_x64"
+    [win]="win_release steam_api64.dll steamclient64.dll generate_interfaces_x64.exe"
+    [win32]="win_release steam_api.dll steamclient.dll generate_interfaces_x32.exe"
+  )
+
+  PLATFORM=$1
+  STEAM_API_FILE=$(realpath "$2")
+  GBE_FORK_DIR=${3:-$GBE_DIR}
+  DIR=$(dirname "$STEAM_API_FILE")
+  FILE=$(basename "$STEAM_API_FILE")
+
+  # Validate platform
+  if [[ -z "${PLATFORM_CONFIG[$PLATFORM]}" ]]; then
+    echo "Invalid platform: $PLATFORM"
+    echo "Valid platforms: ${!PLATFORM_CONFIG[@]}"
+    exit 1
+  fi
+
+  IFS=' ' read -r FORK_SUBDIR TARGET_FILE ADDITIONAL_FILE GENERATOR <<<"${PLATFORM_CONFIG[$PLATFORM]}"
+  GBE_PATH="$GBE_FORK_DIR/$FORK_SUBDIR/experimental/x64"
+
+  # Verify the file exists
+  [ -f "$STEAM_API_FILE" ] || {
+    echo "Error: Steam API file not found: $STEAM_API_FILE"
+    exit 1
+  }
+
+  cd "$DIR" && "$GBE_FORK_DIR/tools/generate_interfaces/$GENERATOR" "$FILE"
+
+  # Backup and replace files
+  backup_and_replace "$GBE_PATH/$TARGET_FILE" "$FILE"
+  [ -f "$ADDITIONAL_FILE" ] && backup_and_replace "$GBE_PATH/$ADDITIONAL_FILE" "$ADDITIONAL_FILE"
+
+  echo "GBE applied successfully to $STEAM_API_FILE"
+}
+
+refresh_gbe() {
+  declare -A FILE_TYPES=(
+    ["steam_api64.dll"]="win_release/experimental/x64/steam_api64.dll"
+    ["steam_api.dll"]="win_release/experimental/x32/steam_api.dll"
+    ["steamclient64.dll"]="win_release/experimental/x64/steamclient64.dll"
+    ["steamclient.dll"]="win_release/experimental/x32/steamclient.dll"
+    ["libsteam_api.so"]="linux_release/experimental/x64/libsteam_api.so"
+    ["steamclient.so"]="linux_release/experimental/x64/steamclient.so"
+  )
+
+  update_file() {
+    local file=$1
+    local filename=$(basename "$file")
+    backup_and_replace "$GBE_DIR/${FILE_TYPES[$filename]}" "$file" ".OUTDATED"
+    echo -e "\nUpdated.\n"
+  }
+
+  shopt -s globstar nullglob dotglob
+
+  for pattern in "${!FILE_TYPES[@]}"; do
+    for file in $(pwd)/**/"$pattern"; do
+      [ -f "$file" ] || continue
+      echo "Found: $file"
+
+      source_file="$GBE_DIR/${FILE_TYPES[${file##*/}]}"
+      [ -f "$source_file" ] || {
+        echo "Source file not found: $source_file\nSkipping...\n"
+        continue
+      }
+
+      if [ "$(get_hash "$file")" = "$(get_hash "$source_file")" ]; then
+        echo -e "File is already up to date. Skipping...\n"
+        continue
+      fi
+
+      read -p "Update this file? [y/N] " -n 1 -r
+      echo
+      [[ $REPLY =~ ^[Yy]$ ]] && update_file "$file" || echo -e "Skipping...\n"
+    done
+  done
+}
+
+fetch_gbe() {
+  echo "Fetching latest GBE fork..."
+
+  url="https://api.github.com/repos/Detanup01/gbe_fork/releases/latest"
+  timestamp_file="$GBE_DIR/.gbe_timestamp"
+
+  # Get updated_at time from GitHub
+  updated_at="$(curl -f -s $url | jq -r '.assets[0] | .updated_at')"
+  if [ -z "$updated_at" ]; then
+    echo "Error: Failed to get update time from GitHub"
+    return 1
+  fi
+
+  # Check if already up-to-date
+  if [[ -f "$timestamp_file" && "$updated_at" == "$(cat "$timestamp_file")" ]]; then
+    echo "Already up-to-date (delete $timestamp_file if you want to update anyway)"
+    echo "Exiting..."
+    return 0
+  fi
+
+  # Create GBE_DIR if it doesn't exist
+  mkdir -p "$GBE_DIR" || return 1
+
+  # Linux release
+  echo "Downloading Linux release..."
+  linux_url=$(curl -f -s $url | jq -r '.assets[] | select(.name | endswith("linux-release.tar.bz2")) | .browser_download_url')
+  if [ -z "$linux_url" ]; then
+    echo "Error: Failed to get Linux download URL"
+    return 1
+  fi
+
+  wget -q --show-progress -O "$GBE_DIR/linux.tar.bz2" "$linux_url" || return 1
+  rm -rf "$GBE_DIR/linux_release" # Clean existing directory
+  mkdir -p "$GBE_DIR/linux_release"
+  if ! tar -xjf "$GBE_DIR/linux.tar.bz2" -C "$GBE_DIR/linux_release" --strip-components=1; then
+    echo "Error: Failed to extract Linux release"
+    return 1
+  fi
+  rm "$GBE_DIR/linux.tar.bz2" # Clean up archive
+
+  # Win release
+  echo "Downloading Windows release..."
+  win_url=$(curl -f -s $url | jq -r '.assets[] | select(.name | endswith("win-release.7z")) | .browser_download_url')
+  if [ -z "$win_url" ]; then
+    echo "Error: Failed to get Windows download URL"
+    return 1
+  fi
+
+  wget -q --show-progress -O "$GBE_DIR/win.7z" "$win_url" || return 1
+  rm -rf "$GBE_DIR/win_release" # Clean existing directory
+  mkdir -p "$GBE_DIR/win_release"
+  if ! 7z x "$GBE_DIR/win.7z" -o"$GBE_DIR/win_release" -y; then
+    echo "Error: Failed to extract Windows release"
+    return 1
+  fi
+  # Move contents from win_release/release to win_release and remove empty directory
+  mv "$GBE_DIR/win_release/release"/* "$GBE_DIR/win_release/"
+  rmdir "$GBE_DIR/win_release/release"
+  rm "$GBE_DIR/win.7z" # Clean up archive
+
+  # Update timestamp
+  echo "$updated_at" >"$timestamp_file"
+
+  echo "GBE fork updated successfully."
+  return 0
+}
+
+# Main command dispatcher
+case "$1" in
+apply)
+  shift
+  apply_gbe "$@"
+  ;;
+refresh) refresh_gbe ;;
+fetch) fetch_gbe ;;
+*)
+  echo "Usage: $0 <command> [options]"
+  echo "Commands:"
+  echo "  apply <platform> <steam_api_file> [gbe_fork_dir] - Apply GBE to a Steam API file"
+  echo "  refresh - Refresh GBE files in current directory and subdirectories"
+  echo "  fetch - Update the GBE fork repository"
+  exit 1
+  ;;
+esac
