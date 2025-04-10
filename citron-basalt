@@ -1,0 +1,2 @@
+#!/bin/sh
+ENABLE_VKBASALT=1 VKBASALT_CONFIG_FILE=$HOME/media/emulation/switch/vkbasalt/vkBasalt.conf /home/vitezfh/.local/citron.AppImage

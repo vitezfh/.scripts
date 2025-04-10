@@ -11,7 +11,7 @@ set -x
 #      #             #    <-- ./switch --    #            #
 #      ###############                       ##############
 #            |                                  ^
-#           bus 1-2  - - - - - usbip - - - - - /  
+#           bus 1-2  - - - - - usbip - - - - - /
 #            |      		              |
 #        #############                     + + + + + + +
 #        # keyboard1 #                     + keyboard1 +
@@ -45,41 +45,42 @@ usb_buses=${usb_buses-1-3.1 1-3.6}
 ######################
 
 bind_usb() {
-	sudo usbip bind -b $1
+  sudo usbip bind -b $1
 }
 
 release_usb() {
-	sudo usbip unbind -b $1
+  sudo usbip unbind -b $1
 }
 
 attach_usb() {
-	ssh $CLIENT "sudo usbip attach -r $SERVER -b $1"
+  ssh $CLIENT "sudo usbip attach -r $SERVER -b $1"
 }
 
 release_usb() {
-	ssh $SERVER "sudo usbip unbind -b $1"
+  ssh $SERVER "sudo usbip unbind -b $1"
 }
 
 release_usb_locally() {
-	sudo usbip unbind -b $1
+  sudo usbip unbind -b $1
 }
 
 check_client() {
-	# Also loads vhci-hcd on client, just in case
-	ssh -q -o "ConnectTimeout=1" $USER@$CLIENT "sudo modprobe vhci-hcd && exit"
-	return $?
+  # Also loads vhci-hcd on client, just in case
+  ssh -q -o "ConnectTimeout=1" $USER@$CLIENT "sudo modprobe vhci-hcd && exit"
+  return $?
 }
 
-if [[ "$HOSTNAME" == "$CLIENT_HOSTNAME" ]] ; then
-	echo "Releasing devices..."
-	for bus in $usb_buses ; do release_usb $bus ; done ; exit
-	elif check_client; then
-		for bus in $usb_buses ; do
-			if bind_usb $bus; then
-				attach_usb $bus
-			else
-				release_usb_locally $bus
-				release_usb $bus
-			fi
-		done
+if [[ "$HOSTNAME" == "$CLIENT_HOSTNAME" ]]; then
+  echo "Releasing devices..."
+  for bus in $usb_buses; do release_usb $bus; done
+  exit
+elif check_client; then
+  for bus in $usb_buses; do
+    if bind_usb $bus; then
+      attach_usb $bus
+    else
+      release_usb_locally $bus
+      release_usb $bus
+    fi
+  done
 fi

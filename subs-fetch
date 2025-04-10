@@ -1,4 +1,0 @@
-#!/bin/sh
-echo Use any of the following:
-echo 'OpenSubtitlesDownload.py --select manual -g cli -u $OPEN_SUBTITLES_U -p $OPEN_SUBTITLES_P  $$$'
-echo 'subliminal --opensubtitles $OPEN_SUBTITLES_U $OPEN_SUBTITLES_P download   $$$'

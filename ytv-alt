@@ -2,4 +2,4 @@
 # Alternative to youtube-viewer, useful if it breaks
 # Awful quality though
 str="$*"
-youtube-dl -i "ytsearch:$str" -o - | mpv -
+yt-dlp -i "ytsearch:$str" -o - | mpv -
