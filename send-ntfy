@@ -1,26 +1,27 @@
 #!/bin/bash
 set -e
-NTFY_CONFIG=${NTFY_CONFIG-$HOME/.ntfy}
+CONFIG=${NTFY_CONFIG-$HOME/.ntfy}
 
-NTFY_SERVER=${NTFY_SERVER-$(head -n1 "$NTFY_CONFIG")}
-NTFY_TOPIC=${NTFY_TOPIC-$(head -n2 "$NTFY_CONFIG" | tail -n1)}
-NTFY_TOKEN=${NTFY_TOKEN-$(tail -n1 "$NTFY_CONFIG")}
+SERVER=${NTFY_SERVER-$(head -n1 "$CONFIG")}
+TOPIC=${NTFY_TOPIC-$(head -n2 "$CONFIG" | tail -n1)}
+TOKEN=${NTFY_TOKEN-$(tail -n1 "$CONFIG")}
 
 TAGS=${TAGS-computer}
 TITLE=${TITLE-Alert}
-PRIORITY=${PRIORITY-low}
+PRIORITY=${PRIORITY-3}
 DELAY=${DELAY-}
 ACTIONS=${ACTIONS-}
 
 send_ntfy() {
-	curl \
-		-H "Authorization: Bearer $NTFY_TOKEN" \
-		-H "Tags: $TAGS" \
-		-H "Title: $TITLE" \
-		-H "Priority: $PRIORITY" \
-		-H "Delay: $([ $DELAY -e "" ] || echo "$DELAY")" \
-		-H "Actions: $([ $ACTIONS -e "" ] || echo "$ACTIONS")" \
-		-d "$@" \
-		"$NTFY_SERVER/$NTFY_TOPIC"
+  curl \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Tags: $TAGS" \
+    -H "Title: $TITLE" \
+    -H "X-Priority: $PRIORITY" \
+    -H "Delay: $([ $DELAY -e "" ] || echo "$DELAY")" \
+    -H "Actions: $([ $ACTIONS -e "" ] || echo "$ACTIONS")" \
+    -d "$@" \
+    "$SERVER/$TOPIC"
 }
-send_ntfy "$@"
+# if not sourced
+(return 0 2>/dev/null) || send_ntfy "$@"

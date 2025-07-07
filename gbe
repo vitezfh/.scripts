@@ -4,7 +4,7 @@ set -e
 GBE_DIR=~/.local/share/gbe_fork/
 mkdir -p "$GBE_DIR"
 
-# Function to calculate md5 hash (works on both Linux and macOS)
+# Function to calculate md5 hash
 get_hash() {
   if command -v md5sum >/dev/null 2>&1; then
     md5sum "$1" | awk '{print $1}'
@@ -20,16 +20,17 @@ backup_and_replace() {
   cp "$src" "$dest"
 }
 
+# Main function to apply GBE
 apply_gbe() {
   if [ $# -lt 2 ]; then
     echo "Usage: $0 apply <platform> <steam_api_file> [gbe_fork_dir]"
-    echo "Platforms: linux, win, win32"
+    echo "Platforms: linux, win64, win32"
     exit 1
   fi
 
   declare -A PLATFORM_CONFIG=(
     [linux]="linux_release libsteam_api.so steamclient.so generate_interfaces_x64"
-    [win]="win_release steam_api64.dll steamclient64.dll generate_interfaces_x64.exe"
+    [win64]="win_release steam_api64.dll steamclient64.dll generate_interfaces_x64.exe"
     [win32]="win_release steam_api.dll steamclient.dll generate_interfaces_x32.exe"
   )
 
@@ -55,7 +56,8 @@ apply_gbe() {
     exit 1
   }
 
-  cd "$DIR" && "$GBE_FORK_DIR/tools/generate_interfaces/$GENERATOR" "$FILE"
+  chmod +x "$GBE_FORK_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR"
+  cd "$DIR" && "$GBE_FORK_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR" "$FILE"
 
   # Backup and replace files
   backup_and_replace "$GBE_PATH/$TARGET_FILE" "$FILE"
@@ -64,6 +66,7 @@ apply_gbe() {
   echo "GBE applied successfully to $STEAM_API_FILE"
 }
 
+# Function to refresh old libraries
 refresh_gbe() {
   declare -A FILE_TYPES=(
     ["steam_api64.dll"]="win_release/experimental/x64/steam_api64.dll"
@@ -106,7 +109,7 @@ refresh_gbe() {
   done
 }
 
-fetch_gbe() {
+update_gbe() {
   echo "Fetching latest GBE fork..."
 
   url="https://api.github.com/repos/Detanup01/gbe_fork/releases/latest"
@@ -180,13 +183,13 @@ apply)
   apply_gbe "$@"
   ;;
 refresh) refresh_gbe ;;
-fetch) fetch_gbe ;;
+update) update_gbe ;;
 *)
   echo "Usage: $0 <command> [options]"
   echo "Commands:"
   echo "  apply <platform> <steam_api_file> [gbe_fork_dir] - Apply GBE to a Steam API file"
   echo "  refresh - Refresh GBE files in current directory and subdirectories"
-  echo "  fetch - Update the GBE fork repository"
+  echo "  update - Update the GBE fork repository"
   exit 1
   ;;
 esac

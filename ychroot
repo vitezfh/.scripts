@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+## Following dependencies needed for emulation: binfmt-support qemu qemu-user-static
+## You likely need to enable the binfmt-support service
+## First step is make sure #  update-binfmts --enable  # outputs anything at all
+############################
+#         Defaults         #
+############################
+MNT=${MNT-chrootfs}
+qemu_bin=${qemu_bin-/usr/bin/qemu-aarch64-static}
+pkg_bind=${pkg_bind-}
+#to_bind="dev dev/pts dev/shm sys proc run run/udev"
+to_bind="dev sys proc"
+############################
+#         Sources          #
+source bin/_utils
+source bin/img-tools
+
+_undo_chroot() {
+  #local msg="kill pacman (gets left over on arch distros)"
+  #( sudo pkill -9 -f "pacman" && check "$msg" ok ) || check "$msg" aa
+  local msg="check $MNT mounted"
+  check_mount "$MNT" || check "$msg" aa
+  [ $? = 0 ] && check "$msg" ok
+  local msg="umount $to_bind FROM $MNT"
+  (for f in $(reverse_word_order "$to_bind"); do sudo umount -Rv "$MNT"/"$f" || true; done) || check "$msg" ee
+  check "$msg" ok
+}
+
+undo_chroot() {
+  local msg='Undoing chroot (remove bindmounts)'
+  _undo_chroot || check "$msg" ee
+  check "$msg" ok
+}
+
+_prepare_chroot() {
+  local msg="bind $to_bind --> $MNT"
+  (for f in $to_bind; do sudo mount --bind /"$f" "$MNT"/"$f"; done) || check "$msg" ee
+  check "$msg" ok
+  set -x
+  if [ ! -z "$pkg_bind" ]; then
+    sudo mount --bind "${pkg_bind[0]}" "$MNT"/"${pkg_bind[1]}"
+  fi
+  set +x
+  local msg="$(basename "$qemu_bin") --> $MNT$qemu_bin"
+  sudo cp "$qemu_bin" "$MNT""$qemu_bin" || check "$msg" ee
+  [ -f "$MNT$qemu_bin" ] || check "$msg" ee
+  check "$msg" ok
+
+  local msg="Copy resolv.conf to image"
+  sudo cp /etc/resolv.conf "$MNT"/etc/ || check "$msg" ee
+  check "$msg" ok
+}
+
+execute_file_in_qemu_chroot() {
+  # Last argument is an executable
+  file="${!#}"
+
+  _prepare_chroot
+  file_name="$(basename $file)"
+  local msg='copying file to chroot'
+  sudo cp "$file" "$MNT/opt/$file_name" || check "$msg" ee
+  check "$msg" ok
+  # TODO: Absolute path: /opt/
+  sudo --preserve-env=mode chroot "$MNT" bash -c "${@:1:$#-1} true ; chmod +x /opt/$file_name ; ./opt/$file_name"
+  undo_chroot
+}
+
+####################################
+## For getting a chrooted shell on specified mountpoint
+## (good for testing if you mount sdcard or image)
+main() {
+  MNT="${1-$MNT}"
+  _prepare_chroot
+  msg='Executing chroot shell'
+  echo_yellow "$msg"
+  sudo chroot "$MNT" bash -c 'export TERM=xterm-256color ; bash ' || true
+  undo_chroot
+}
+
+if [[ "${#BASH_SOURCE[@]}" -eq 1 ]]; then
+  main "$@"
+  exit_tool $?
+fi

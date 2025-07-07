@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # Sets brightness of smart lamp to brightness of bg, and sweeps through dominant colors of wallpaper 
 #set -x
 wallpaper_path="$HOME/.cache/wallpapers/"

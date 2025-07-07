@@ -1,0 +1,6 @@
+#!/bin/bash
+
+loginctl lock-session $XDG_SESSION_ID
+sleep 1
+qdbus org.kde.KWin /KWin setCurrentDesktop 1
+exit 0

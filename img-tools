@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+# vi: set foldmethod=indent :
+set -e
+############################
+#         Defaults         #
+MNT=${MNT-./tmpmnt}
+img=${img-}
+############################
+############################
+
+source _utils
+
+help_msg() {
+  echo "Description:
+  Various tools for working with linux images. See usage;
+  Usage:
+    $TOOL_NAME <COMMAND> <*ARGS> [--help, -h]
+  Commands:
+    $TOOL_NAME mount_full_image <raw full image>
+    $TOOL_NAME mount_root_image <raw image of partition>
+    $TOOL_NAME umount []
+    $TOOL_NAME dd <image> </dev/disk/by-id/disk>
+    $TOOL_NAME loop <image>
+    $TOOL_NAME loop_release
+  "
+}
+
+check_mount() {
+  sudo df | grep "$1" &>/dev/null
+  return $?
+}
+
+check_is_dev() {
+  msg="check if one of: $@ is blockdevice/chardevice"
+  (file -Li $1 $2 | grep -e blockdevice -e chardevice) || check "$msg" ee
+  check "$msg" ok
+}
+
+tofrom_blockdev() {
+  echo "Write: $1 to $2"
+  echo please wait - This takes some time
+  check_is_dev "$@"
+  msg="write: $1 to $2"
+  $generic_dd if="$1" of="$2" || check "$msg" ee
+  check "$msg" ok
+  #echo "Please remove the device ($BLOCKDEV - $img)"
+  #while [ -e "$BLOCKDEV""-part1" ]; do
+  #	sleep 1
+  #done
+  #echo "$BLOCKDEV ejected..."
+}
+
+tmp_mntdir() {
+  mkdir -p ./tmpmnt
+  export MNT=$(mktemp -d -t img-XXXX --tmpdir=tmpmnt)
+  echo $MNT
+}
+
+clean_tmp_mntdir() {
+  sudo umount -RAq ./tmpmnt/*
+  sudo rmdir ./tmpmnt/*
+}
+
+umount_image() {
+  local msg="unmount $MNT recursively"
+  #(check_mount "$MNT" ; sudo umount -RAq "$MNT" && check "$msg" ok ) \
+  (sudo umount -RAq "$MNT" && check "$msg" ok) ||
+    check "$msg" aa
+
+  release_loops
+
+  clean_tmp_mntdir
+}
+
+assign_loop() {
+  local msg="assign image to loop device"
+  ld=$(sudo losetup --show -P -f "$@") || check "$msg" ee
+  check "$msg" ok
+}
+
+release_loops() {
+  local msg="release ALL loop devices"
+  sudo losetup -D || check "$msg" ee
+  check "$msg" ok
+}
+
+_prepare_mount_image() {
+  expand=${expand-}
+  local msg="check $MNT not mounted already"
+  #TODO: check_mount "$MNT" && check "$msg" ee
+  check "$msg" ok
+  if [ ! "$expand" = "" ]; then
+    $generic_dd if=/dev/zero count="$expand" >>"$img"
+  fi
+  assign_loop $img
+  if [ ! "$expand" = "" ]; then
+    sudo e2fsck -fy "$ld"p2 && sudo parted "$ld" resizepart 2 100% && sudo resize2fs -f "$ld"p2
+  fi
+}
+
+mount_full_image() {
+  tmp_mntdir
+  local msg="Mounting image"
+  mkdir -p "$MNT"
+  _prepare_mount_image
+  local msg="${ld}p2 -> ${MNT} ${ld}p1 -> ${MNT}/boot "
+  sudo mount "$ld"p2 "$MNT" && sudo mkdir -p "$MNT"/boot && sudo mount "$ld"p1 "$MNT"/boot
+  check "$msg" ok
+}
+
+mount_root_image() {
+  tmp_mntdir
+  local msg="Mounting image"
+  mkdir -p "$MNT"
+  _prepare_mount_image
+  local msg="${ld} -> ${MNT}"
+  sudo mount "${ld}" "$MNT"
+  check "$msg" ok
+}
+
+fsck_pi_sd() {
+  fsck.vfat -p "$MMC"p1
+  fsck.ext4 -p "$MMC"p2
+}
+
+mount_sd() {
+  MNT=sdmnt
+  mkdir -p "$MNT"
+  local msg="check $MNT not mounted already"
+  check_mount "$MNT" &>/dev/null && check "$msg" ee
+  check "$msg" ok
+
+  local msg="mount partition 1 & 2 of $MNT"
+  sudo mount "$MMC"-part2 "$MNT" && sudo mount "$MMC"-part1 "$MNT"/boot || check "$msg" ee
+  check "$msg" ok
+}
+
+umount_sd() {
+  local msg="unmount $MNT/boot and $MNT"
+  (check_mount "$MNT" &>/dev/null && sudo umount -RAq "$MNT") || check "$msg" ee
+  check "$msg" ok
+}
+
+compress() {
+  echo image and compress blockdev
+
+  for arg in "$@"; do
+    case "$arg" in
+    gz)
+      $generic_dd if="$BLOCKDEV" | gzip -2 >.temparchive
+      ;;
+    zst)
+      zstd -3v <$BLOCKDEV >.temparchive
+      ;;
+    esac
+  done
+  echo rename from .temparchive to "$img"
+  mv -n .temparchive "$img".$arg
+}
+
+decompress() {
+  echo decompress image to $BLOCKDEV
+  for arg in "$@"; do
+    case "$arg" in
+    gz)
+      echo unsupported
+      exit 1
+      ;;
+    zst)
+      zstdcat -v $img >$BLOCKDEV
+      ;;
+    esac
+  done
+}
+
+#######
+# Command line args:
+main() {
+  action=${1-}
+  for arg in "$@"; do
+    case "$arg" in
+    --help | -h | help)
+      help_msg
+      ;;
+    esac
+  done
+  case "$action" in
+  mount_full_image)
+    [ -n "$img" ] || help_msg
+    img="${2-$img}" mount_full_image
+    ;;
+  mount_root_image)
+    [ -n "$img" ] || help_msg
+    img="${2-$img}" mount_root_image
+    ;;
+  umount_image)
+    MNT="${2-$MNT}" umount_image
+    ;;
+  mount_sd)
+    MMC="${2-$MMC}" mount_sd
+    ;;
+  umount_sd)
+    MNT="${2-$MNT}" umount_sd
+    ;;
+  dd)
+    [ -n "$img" ] || help_msg
+    img="${2-$img}" blockdev="${3-$blockdev}" tofrom_blockdev "$2" "$3"
+    ;;
+  loop)
+    assign_loop "${2-$img}"
+    ;;
+  loop_release | release_loops)
+    release_loops
+    ;;
+  *)
+    help_msg
+    ;;
+  esac
+}
+
+## Allows us to source this script for the functions
+if [[ "${#BASH_SOURCE[@]}" -eq 1 ]]; then
+  main "$@"
+  exit_tool $?
+fi

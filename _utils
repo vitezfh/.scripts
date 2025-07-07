@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+## This is meant to be sourced from most scripts in this repository.
+# Includes a strict bash mode/preset w/ a handful of options for nicer console output
+
+set -euo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+###################
+## FORMATTING:
+# color definitons
+green=$(tput setaf 2)
+red=$(tput setaf 1)
+yellow=$(tput setaf 3)
+normal=$(tput sgr0)
+
+# status "flags"
+OK="${green}[OK]${normal}"
+EE="${red}[EE]${normal}"
+AA="${yellow}[AA]${normal}"
+
+# colored printing functions
+echo_red() {
+  printf "${red}$1${normal}\n"
+}
+echo_yellow() {
+  printf "${yellow}$1${normal}\n"
+}
+echo_green() {
+  printf "${green}$1${normal}\n"
+}
+
+# filename of currenlty running script
+TOOL_NAME=$(basename "$0")
+
+###################
+
+# TODO: this doesn't really belong here
+generic_dd="sudo dd bs=1M iflag=fullblock status=progress"
+
+########
+### Various universal functions, mostly for a nice console output:
+
+# Prints an exit status message when called (probably ofthen through trap or in main function)
+exit_tool() {
+  exit_code=${1-}
+  if [ -z $exit_code ] || [ "$exit_code" = 0 ]; then
+    echo_green "Success!"
+    exit $exit_code
+  else
+    echo_red "Failed!"
+    exit $exit_code
+  fi
+}
+
+# Prints general (e.g. from a single step) status message
+check() {
+  message=${1-null}
+  return_code=${2-ee}
+  case "$return_code" in
+  ee)
+    printf "%-65s %s\n" "$message " "$EE"
+    echo Failed task: "$TOOL_NAME"
+    return 1
+    ;;
+  aa)
+    printf "%-65s %s\n" "$message " "$AA"
+    return
+    ;;
+  ok)
+    printf "%-65s %s\n" "$message " "$OK"
+    return
+    ;;
+  esac
+}
+
+reverse_word_order() {
+  local result=
+  for word in "$@"; do
+    result="$word $result"
+  done
+  echo "$result"
+}
