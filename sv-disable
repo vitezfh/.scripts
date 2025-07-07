@@ -1,6 +1,0 @@
-#!/bin/sh
-set -e
-service=$(diff -rq /var/service /etc/sv | grep "/etc/sv" | awk '{print $4}' | fzf)
-echo $service
-exit 0
-sudo ln -s /etc/sv/$service /var/service

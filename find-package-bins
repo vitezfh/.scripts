@@ -1,0 +1,18 @@
+#!/bin/bash
+# Usage: ./scriptname <package-name>
+
+if [ -z "$1" ]; then
+  echo "Error: Please provide a package name as an argument."
+  exit 1
+fi
+
+# Check for pacman (Arch Linux)
+if command -v pacman &>/dev/null; then
+  pacman -Qlq "$1" 2>/dev/null | grep '/usr/bin/'
+# Check for xbps (Void Linux)
+elif command -v xbps-query &>/dev/null; then
+  xbps-query -f "$1" 2>/dev/null | grep '/usr/bin/'
+else
+  echo "Error: No supported package manager found (pacman or xbps-query)."
+  exit 1
+fi
