@@ -1,6 +1,5 @@
 #!/bin/bash
-set -ex
-
+set -e
 # Help function
 show_help() {
   cat <<EOF
