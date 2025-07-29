@@ -7,7 +7,7 @@ trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 ###################
 ## FORMATTING:
-# color definitons
+# color definitions
 green=$(tput setaf 2)
 red=$(tput setaf 1)
 yellow=$(tput setaf 3)
@@ -20,60 +20,77 @@ AA="${yellow}[AA]${normal}"
 
 # colored printing functions
 echo_red() {
-  printf "${red}$1${normal}\n"
+  printf "${red}%s${normal}\n" "$1"
 }
 echo_yellow() {
-  printf "${yellow}$1${normal}\n"
+  printf "${yellow}%s${normal}\n" "$1"
 }
 echo_green() {
-  printf "${green}$1${normal}\n"
+  printf "${green}%s${normal}\n" "$1"
 }
 
-# filename of currenlty running script
+# filename of currently running script
 TOOL_NAME=$(basename "$0")
 
 ###################
 
 # TODO: this doesn't really belong here
+# Generic dd command with common options for progress and block size.
 generic_dd="sudo dd bs=1M iflag=fullblock status=progress"
 
 ########
 ### Various universal functions, mostly for a nice console output:
 
-# Prints an exit status message when called (probably ofthen through trap or in main function)
+# Prints an exit status message when called (probably often through trap or in main function)
+# Arguments:
+#   $1: Exit code (optional, defaults to 0 if not provided)
 exit_tool() {
-  exit_code=${1-}
-  if [ -z $exit_code ] || [ "$exit_code" = 0 ]; then
+  local exit_code=${1:-0} # Default to 0 if no argument is provided
+  if [ "$exit_code" -eq 0 ]; then
     echo_green "Success!"
-    exit $exit_code
+    exit 0
   else
     echo_red "Failed!"
-    exit $exit_code
+    exit "$exit_code"
   fi
 }
 
-# Prints general (e.g. from a single step) status message
+# Prints general status messages with visual indicators.
+# Arguments:
+#   $1: The message to display.
+#   $2: The return code indicator ('ok', 'aa', 'ee'). Defaults to 'ee'.
 check() {
-  message=${1-null}
-  return_code=${2-ee}
+  local message=${1:-"null"}
+  local return_code=${2:-"ee"} # Default to 'ee' (error) if not specified
+
   case "$return_code" in
   ee)
     printf "%-65s %s\n" "$message " "$EE"
-    echo Failed task: "$TOOL_NAME"
+    echo "Failed task: $TOOL_NAME" >&2 # Output to stderr for errors
     return 1
     ;;
   aa)
     printf "%-65s %s\n" "$message " "$AA"
-    return
+    return 0 # Indicate success for 'aa'
     ;;
   ok)
     printf "%-65s %s\n" "$message " "$OK"
-    return
+    return 0 # Indicate success for 'ok'
+    ;;
+  *)
+    printf "%-65s %s\n" "$message " "$EE" # Default to error for unknown codes
+    echo "Unknown return code '$return_code' used for message: $message" >&2
+    return 1
     ;;
   esac
 }
 
-reverse_word_order() {
+# Reverses the order of words in a given string.
+# Arguments:
+#   $@: Words to reverse.
+# Returns:
+#   The string with words in reverse order.
+_reverse_word_order() {
   local result=
   for word in "$@"; do
     result="$word $result"
