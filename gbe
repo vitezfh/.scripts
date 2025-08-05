@@ -35,7 +35,6 @@ apply_gbe() {
     echo "TODO: If no file is provided, will search for Steam API files in current directory"
     exit 1
   fi
-  set -x
   PLATFORM=$1
 
   # Validate platform
@@ -65,7 +64,8 @@ apply_gbe() {
       echo "File is already up to date. Skipping..."
       continue
     fi
-
+    # Checks if $file is an original steam_api file by absence of *gbe_fork* strings
+    # Needs testing for linux .so
     if ! strings "$file" | grep -qi "gbe_fork"; then
       backup_and_replace "$source_file" "$file"
       [ -f "$ADDITIONAL_FILE" ] && backup_and_replace "$GBE_PATH/$ADDITIONAL_FILE" "$(dirname "$file")/$ADDITIONAL_FILE"

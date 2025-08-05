@@ -32,12 +32,6 @@ echo_green() {
 # filename of currently running script
 TOOL_NAME=$(basename "$0")
 
-###################
-
-# TODO: this doesn't really belong here
-# Generic dd command with common options for progress and block size.
-generic_dd="sudo dd bs=1M iflag=fullblock status=progress"
-
 ########
 ### Various universal functions, mostly for a nice console output:
 
@@ -83,17 +77,4 @@ check() {
     return 1
     ;;
   esac
-}
-
-# Reverses the order of words in a given string.
-# Arguments:
-#   $@: Words to reverse.
-# Returns:
-#   The string with words in reverse order.
-_reverse_word_order() {
-  local result=
-  for word in "$@"; do
-    result="$word $result"
-  done
-  echo "$result"
 }
