@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Main command dispatcher
+case "$1" in
+start)
+  ds4drv --hidraw --emulate-xpad &
+  ;;
+stop)
+  killall ds4drv &
+  ;;
+*)
+  echo "Usage: $0 <command>"
+  echo "Commands:"
+  echo "  start"
+  echo "  stop"
+  exit 1
+  ;;
+esac

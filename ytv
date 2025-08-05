@@ -43,4 +43,4 @@ else
 fi
 
 # Execute the command
-yt-dlp -o - --downloader ffmpeg -f "$format" $sponsorblock "$yt_link" | mpv -
+yt-dlp --default-search "ytsearch" -o - --downloader ffmpeg -f "$format" $sponsorblock "$yt_link" | mpv -

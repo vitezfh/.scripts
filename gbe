@@ -16,29 +16,27 @@ get_hash() {
 # Helper function for file operations
 backup_and_replace() {
   local src=$1 dest=$2 backup_suffix=${3:-.ORIGINAL}
-  mv "$dest" "$dest$backup_suffix"
+  mv "$dest" "$dest.$(date +'%Y%m%d-%H%M%S')$backup_suffix"
   cp "$src" "$dest"
 }
 
+# Platform configurations
+declare -A PLATFORM_CONFIG=(
+  [linux]="linux_release libsteam_api.so steamclient.so generate_interfaces_x64"
+  [win64]="win_release steam_api64.dll steamclient64.dll generate_interfaces_x64.exe"
+  [win32]="win_release steam_api.dll steamclient.dll generate_interfaces_x32.exe"
+)
+
 # Main function to apply GBE
 apply_gbe() {
-  if [ $# -lt 2 ]; then
-    echo "Usage: $0 apply <platform> <steam_api_file> [gbe_fork_dir]"
+  if [ $# -lt 1 ]; then
+    echo "Usage: $0 apply <platform> [steam_api_file]"
     echo "Platforms: linux, win64, win32"
+    echo "TODO: If no file is provided, will search for Steam API files in current directory"
     exit 1
   fi
-
-  declare -A PLATFORM_CONFIG=(
-    [linux]="linux_release libsteam_api.so steamclient.so generate_interfaces_x64"
-    [win64]="win_release steam_api64.dll steamclient64.dll generate_interfaces_x64.exe"
-    [win32]="win_release steam_api.dll steamclient.dll generate_interfaces_x32.exe"
-  )
-
+  set -x
   PLATFORM=$1
-  STEAM_API_FILE=$(realpath "$2")
-  GBE_FORK_DIR=${3:-$GBE_DIR}
-  DIR=$(dirname "$STEAM_API_FILE")
-  FILE=$(basename "$STEAM_API_FILE")
 
   # Validate platform
   if [[ -z "${PLATFORM_CONFIG[$PLATFORM]}" ]]; then
@@ -48,64 +46,36 @@ apply_gbe() {
   fi
 
   IFS=' ' read -r FORK_SUBDIR TARGET_FILE ADDITIONAL_FILE GENERATOR <<<"${PLATFORM_CONFIG[$PLATFORM]}"
-  GBE_PATH="$GBE_FORK_DIR/$FORK_SUBDIR/experimental/x64"
-
-  # Verify the file exists
-  [ -f "$STEAM_API_FILE" ] || {
-    echo "Error: Steam API file not found: $STEAM_API_FILE"
-    exit 1
-  }
-
-  chmod +x "$GBE_FORK_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR"
-  cd "$DIR" && "$GBE_FORK_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR" "$FILE"
-
-  # Backup and replace files
-  backup_and_replace "$GBE_PATH/$TARGET_FILE" "$FILE"
-  [ -f "$ADDITIONAL_FILE" ] && backup_and_replace "$GBE_PATH/$ADDITIONAL_FILE" "$ADDITIONAL_FILE"
-
-  echo "GBE applied successfully to $STEAM_API_FILE"
-}
-
-# Function to refresh old libraries
-refresh_gbe() {
-  declare -A FILE_TYPES=(
-    ["steam_api64.dll"]="win_release/experimental/x64/steam_api64.dll"
-    ["steam_api.dll"]="win_release/experimental/x32/steam_api.dll"
-    ["steamclient64.dll"]="win_release/experimental/x64/steamclient64.dll"
-    ["steamclient.dll"]="win_release/experimental/x32/steamclient.dll"
-    ["libsteam_api.so"]="linux_release/experimental/x64/libsteam_api.so"
-    ["steamclient.so"]="linux_release/experimental/x64/steamclient.so"
-  )
-
-  update_file() {
-    local file=$1
-    local filename=$(basename "$file")
-    backup_and_replace "$GBE_DIR/${FILE_TYPES[$filename]}" "$file" ".OUTDATED"
-    echo -e "\nUpdated.\n"
-  }
+  GBE_PATH="$GBE_DIR/$FORK_SUBDIR/experimental/x64"
 
   shopt -s globstar nullglob dotglob
 
-  for pattern in "${!FILE_TYPES[@]}"; do
-    for file in $(pwd)/**/"$pattern"; do
-      [ -f "$file" ] || continue
-      echo "Found: $file"
+  for file in "$(pwd)"/**/"$TARGET_FILE"; do
+    [ -f "$file" ] || continue
+    echo "Found: $file"
 
-      source_file="$GBE_DIR/${FILE_TYPES[${file##*/}]}"
-      [ -f "$source_file" ] || {
-        echo "Source file not found: $source_file\nSkipping...\n"
-        continue
-      }
+    source_file="$GBE_PATH/$TARGET_FILE"
+    [ -f "$source_file" ] || {
+      echo "Source file not found: $source_file"
+      echo "Skipping..."
+      continue
+    }
 
-      if [ "$(get_hash "$file")" = "$(get_hash "$source_file")" ]; then
-        echo -e "File is already up to date. Skipping...\n"
-        continue
+    if [ "$(get_hash "$file")" = "$(get_hash "$source_file")" ]; then
+      echo "File is already up to date. Skipping..."
+      continue
+    fi
+
+    if ! strings "$file" | grep -qi "gbe_fork"; then
+      backup_and_replace "$source_file" "$file"
+      [ -f "$ADDITIONAL_FILE" ] && backup_and_replace "$GBE_PATH/$ADDITIONAL_FILE" "$(dirname "$file")/$ADDITIONAL_FILE"
+
+      # run generator if available
+      if [ -f "$GBE_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR" ]; then
+        chmod +x "$GBE_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR"
+        (cd "$(dirname "$file")" && "$GBE_DIR/$FORK_SUBDIR/tools/generate_interfaces/$GENERATOR" "$(basename "$file")")
       fi
-
-      read -p "Update this file? [y/N] " -n 1 -r
-      echo
-      [[ $REPLY =~ ^[Yy]$ ]] && update_file "$file" || echo -e "Skipping...\n"
-    done
+    fi
   done
 }
 
@@ -182,13 +152,11 @@ apply)
   shift
   apply_gbe "$@"
   ;;
-refresh) refresh_gbe ;;
 update) update_gbe ;;
 *)
   echo "Usage: $0 <command> [options]"
   echo "Commands:"
-  echo "  apply <platform> <steam_api_file> [gbe_fork_dir] - Apply GBE to a Steam API file"
-  echo "  refresh - Refresh GBE files in current directory and subdirectories"
+  echo "  apply <platform> [steam_api_file] - Apply GBE to a Steam API file or search for files"
   echo "  update - Update the GBE fork repository"
   exit 1
   ;;
