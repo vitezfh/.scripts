@@ -20,6 +20,21 @@ backup_and_replace() {
   cp "$src" "$dest"
 }
 
+fetch_app_name() {
+  local appid=$1
+  curl --silent --show-error --retry 3 --max-time 8 "https://store.steampowered.com/api/appdetails?appids=$appid&filters=basic" |
+    jq --raw-output ".\"$appid\".data.name"
+}
+
+fetch_dlcs() {
+  local appid=$1
+  local dlcs=$(curl -f -s "https://store.steampowered.com/dlc/$appid/random/ajaxgetfilteredrecommendations/?query&count=10000" |
+    grep -oP 'data-ds-appid=\\"\K\d+' | sort | uniq)
+  for dlc in $dlcs; do
+    echo "$dlc=""$(fetch_app_name $dlc)"
+  done
+}
+
 # Platform configurations
 declare -A PLATFORM_CONFIG=(
   [linux]="linux_release libsteam_api.so steamclient.so generate_interfaces_x64"
@@ -46,6 +61,9 @@ apply_gbe() {
 
   IFS=' ' read -r FORK_SUBDIR TARGET_FILE ADDITIONAL_FILE GENERATOR <<<"${PLATFORM_CONFIG[$PLATFORM]}"
   GBE_PATH="$GBE_DIR/$FORK_SUBDIR/experimental/x64"
+  if [ "$PLATFORM" == "win32" ]; then
+    GBE_PATH="$GBE_DIR/$FORK_SUBDIR/experimental/x32"
+  fi
 
   shopt -s globstar nullglob dotglob
 
@@ -153,11 +171,13 @@ apply)
   apply_gbe "$@"
   ;;
 update) update_gbe ;;
+dlc) fetch_dlcs "$2" ;;
 *)
   echo "Usage: $0 <command> [options]"
   echo "Commands:"
   echo "  apply <platform> [steam_api_file] - Apply GBE to a Steam API file or search for files"
   echo "  update - Update the GBE fork repository"
+  echo "  dlc - fetch dlc's and unlock them (add to steam_settings)"
   exit 1
   ;;
 esac

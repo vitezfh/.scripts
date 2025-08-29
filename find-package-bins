@@ -8,6 +8,7 @@ fi
 
 # Check for pacman (Arch Linux)
 if command -v pacman &>/dev/null; then
+  pacman -Qlq "$1" 2>/dev/null | grep --invert-match -e '/usr/bin/' -e 'share/licenses' -e '/share/man/' -e '/share/icons'
   pacman -Qlq "$1" 2>/dev/null | grep '/usr/bin/'
 # Check for xbps (Void Linux)
 elif command -v xbps-query &>/dev/null; then

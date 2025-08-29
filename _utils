@@ -1,32 +1,54 @@
 #!/usr/bin/env bash
-## This is meant to be sourced from most scripts in this repository.
-# Includes a strict bash mode/preset w/ a handful of options for nicer console output
+#
+# ==================================================================
+# Sourced Utility Script
+# Provides strict mode, error trapping, and colorized logging functions.
+# ==================================================================
 
+# --- Strict Mode & Error Handling ---
+# -e: exit immediately if a command exits with a non-zero status.
+# -u: treat unset variables as an error when substituting.
+# -o pipefail: the return value of a pipeline is the status of the last command
+#              to exit with a non-zero status, or zero if no command exited with a non-zero status.
 set -euo pipefail
-trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-###################
-## FORMATTING:
-# color definitions
-green=$(tput setaf 2)
-red=$(tput setaf 1)
-yellow=$(tput setaf 3)
-normal=$(tput sgr0)
+# Trap errors and print a helpful message before exiting.
+trap 's=$?; echo >&2 "[$0] Error on line $LINENO: $BASH_COMMAND"; exit $s' ERR
 
-# status "flags"
-OK="${green}[OK]${normal}"
-EE="${red}[EE]${normal}"
-AA="${yellow}[AA]${normal}"
+# --- Formatting and Colors ---
+# Use tput for portability; fallback to empty strings if tput is not available or terminal is not supported.
+if command -v tput >/dev/null 2>&1 && tput setaf 1 >/dev/null 2>&1; then
+  readonly GREEN=$(tput setaf 2)
+  readonly RED=$(tput setaf 1)
+  readonly YELLOW=$(tput setaf 3)
+  readonly BLUE=$(tput setaf 4)
+  readonly NC=$(tput sgr0) # No Color
+else
+  readonly GREEN=""
+  readonly RED=""
+  readonly YELLOW=""
+  readonly BLUE=""
+  readonly NC=""
+fi
 
-# colored printing functions
-echo_red() {
-  printf "${red}%s${normal}\n" "$1"
+# --- Logging Functions ---
+# Prefixes messages with color-coded tags for clarity.
+
+log_info() {
+  printf "${BLUE}[INFO]${NC} %s\n" "$*"
 }
-echo_yellow() {
-  printf "${yellow}%s${normal}\n" "$1"
+
+log_success() {
+  printf "${GREEN}[SUCCESS]${NC} %s\n" "$*"
 }
-echo_green() {
-  printf "${green}%s${normal}\n" "$1"
+
+log_warn() {
+  printf "${YELLOW}[WARN]${NC} %s\n" "$*"
+}
+
+log_error() {
+  # Errors are sent to stderr. The script will exit due to `set -e` and the ERR trap.
+  printf "${RED}[ERROR]${NC} %s\n" "$*" >&2
 }
 
 # filename of currently running script
@@ -41,10 +63,10 @@ TOOL_NAME=$(basename "$0")
 exit_tool() {
   local exit_code=${1:-0} # Default to 0 if no argument is provided
   if [ "$exit_code" -eq 0 ]; then
-    echo_green "Success!"
+    log_success "Success!"
     exit 0
   else
-    echo_red "Failed!"
+    log_error "Failed!"
     exit "$exit_code"
   fi
 }

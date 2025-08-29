@@ -4,6 +4,7 @@
 case "$1" in
 start)
   ds4drv --hidraw --emulate-xpad &
+  #ds4drv --hidraw &
   ;;
 stop)
   killall ds4drv &
