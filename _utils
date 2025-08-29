@@ -2,101 +2,115 @@
 #
 # ==================================================================
 # Sourced Utility Script
-# Provides strict mode, error trapping, and colorized logging functions.
+#
+# Provides strict mode, enhanced error trapping, and colorized
+# logging functions.
+#
+# To use, source this script at the beginning of your script:
+#   source "$(dirname "$0")/_utils"
 # ==================================================================
 
-# --- Strict Mode & Error Handling ---
+# --- Strict Mode ---
 # -e: exit immediately if a command exits with a non-zero status.
-# -u: treat unset variables as an error when substituting.
-# -o pipefail: the return value of a pipeline is the status of the last command
-#              to exit with a non-zero status, or zero if no command exited with a non-zero status.
+# -u: treat unset variables as an error.
+# -o pipefail: the return value of a pipeline is the status of the last
+#              command to exit with a non-zero status.
 set -euo pipefail
 
-# Trap errors and print a helpful message before exiting.
-trap 's=$?; echo >&2 "[$0] Error on line $LINENO: $BASH_COMMAND"; exit $s' ERR
+# --- Global Variables ---
+# Define color variables in the global scope, initialized by a setup function.
+# Use 'readonly' to make them immutable.
+SCRIPT_NAME=$(basename "${BASH_SOURCE[0]}")
+declare G_NC G_RED G_GREEN G_YELLOW G_BLUE
 
-# --- Formatting and Colors ---
-# Use tput for portability; fallback to empty strings if tput is not available or terminal is not supported.
-if command -v tput >/dev/null 2>&1 && tput setaf 1 >/dev/null 2>&1; then
-  readonly GREEN=$(tput setaf 2)
-  readonly RED=$(tput setaf 1)
-  readonly YELLOW=$(tput setaf 3)
-  readonly BLUE=$(tput setaf 4)
-  readonly NC=$(tput sgr0) # No Color
-else
-  readonly GREEN=""
-  readonly RED=""
-  readonly YELLOW=""
-  readonly BLUE=""
-  readonly NC=""
-fi
-
-# --- Logging Functions ---
-# Prefixes messages with color-coded tags for clarity.
-
-log_info() {
-  printf "${BLUE}[INFO]${NC} %s\n" "$*"
-}
-
-log_success() {
-  printf "${GREEN}[SUCCESS]${NC} %s\n" "$*"
-}
-
-log_warn() {
-  printf "${YELLOW}[WARN]${NC} %s\n" "$*"
-}
-
-log_error() {
-  # Errors are sent to stderr. The script will exit due to `set -e` and the ERR trap.
-  printf "${RED}[ERROR]${NC} %s\n" "$*" >&2
-}
-
-# filename of currently running script
-TOOL_NAME=$(basename "$0")
-
-########
-### Various universal functions, mostly for a nice console output:
-
-# Prints an exit status message when called (probably often through trap or in main function)
-# Arguments:
-#   $1: Exit code (optional, defaults to 0 if not provided)
-exit_tool() {
-  local exit_code=${1:-0} # Default to 0 if no argument is provided
-  if [ "$exit_code" -eq 0 ]; then
-    log_success "Success!"
-    exit 0
+# --- Setup Function for Colors ---
+# Initializes color variables. This is cleaner than top-level if/else statements.
+# It also handles terminals that don't support colors gracefully.
+setup_colors() {
+  if [[ -t 1 ]] && command -v tput >/dev/null && tput setaf 1 >/dev/null 2>&1; then
+    # Terminal supports colors
+    G_NC=$(tput sgr0) # No Color
+    G_RED=$(tput setaf 1)
+    G_GREEN=$(tput setaf 2)
+    G_YELLOW=$(tput setaf 3)
+    G_BLUE=$(tput setaf 4)
   else
-    log_error "Failed!"
-    exit "$exit_code"
+    # No color support
+    G_NC=""
+    G_RED=""
+    G_GREEN=""
+    G_YELLOW=""
+    G_BLUE=""
   fi
 }
 
-# Prints general status messages with visual indicators.
-# Arguments:
-#   $1: The message to display.
-#   $2: The return code indicator ('ok', 'aa', 'ee'). Defaults to 'ee'.
-check() {
-  local message=${1:-"null"}
-  local return_code=${2:-"ee"} # Default to 'ee' (error) if not specified
+# --- Logging Functions ---
+# Consistent, color-coded logging. Using printf for reliability.
 
-  case "$return_code" in
-  ee)
-    printf "%-65s %s\n" "$message " "$EE"
-    echo "Failed task: $TOOL_NAME" >&2 # Output to stderr for errors
-    return 1
-    ;;
-  aa)
-    printf "%-65s %s\n" "$message " "$AA"
-    return 0 # Indicate success for 'aa'
-    ;;
-  ok)
-    printf "%-65s %s\n" "$message " "$OK"
-    return 0 # Indicate success for 'ok'
-    ;;
-  *)
-    printf "%-65s %s\n" "$message " "$EE" # Default to error for unknown codes
-    echo "Unknown return code '$return_code' used for message: $message" >&2
-    return 1
-    ;;
-  esac
+log_info() {
+  printf "%s[INFO]%s %s\\n" "${G_BLUE}" "${G_NC}" "$*"
 }
+
+log_success() {
+  printf "%s[SUCCESS]%s %s\\n" "${G_GREEN}" "${G_NC}" "$*"
+}
+
+log_warn() {
+  printf "%s[WARN]%s %s\\n" "${G_YELLOW}" "${G_NC}" "$*"
+}
+
+log_error() {
+  # Error messages are sent to stderr.
+  printf "%s[ERROR]%s %s\\n" "${G_RED}" "${G_NC}" "$*" >&2
+}
+
+# --- Trap Functions ---
+# These functions are triggered by the trap commands below.
+
+# ERR trap: triggered on any command that returns a non-zero exit code.
+script_trap_err() {
+  local exit_code=$?
+  log_error "on line ${BASH_LINENO[0]} of '${BASH_SOURCE[1]}' exited with status ${exit_code}"
+  # The 'set -e' will cause the script to exit.
+}
+
+# EXIT trap: triggered on any script exit, successful or not.
+script_trap_exit() {
+  local exit_code=$?
+  if [[ ${exit_code} -eq 0 ]]; then
+    log_success "Script finished successfully."
+  else
+    log_error "Script exited with status ${exit_code}."
+  fi
+}
+
+# --- Main Execution Guard ---
+# This block allows the script to be tested when executed directly,
+# but does not run when the script is sourced.
+main() {
+  log_info "Demonstrating logging functions..."
+  log_success "This is a success message."
+  log_warn "This is a warning message."
+  log_error "This is an error message (sent to stderr)."
+
+  log_info "Demonstrating error trapping. The next command will fail."
+
+  # This command will fail, trigger the ERR trap, and then the EXIT trap.
+  command_that_does_not_exist
+}
+
+# --- Initialization and Trap Setup ---
+
+# Initialize color variables
+setup_colors
+
+# Set traps
+# The ERR trap is inherited by shell functions, command substitutions, and subshells.
+trap script_trap_err ERR
+# The EXIT trap runs when the script exits for any reason.
+trap script_trap_exit EXIT
+
+# When the script is executed directly (not sourced), run the main function.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
